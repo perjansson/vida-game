@@ -1,0 +1,6 @@
+services:
+  - type: web
+    name: vida-game
+    runtime: static
+    buildCommand: npm install && npm run build
+    staticPublishPath: ./dist
