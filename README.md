@@ -1,6 +1,6 @@
 # Vidas spel
 
-Startprojekt: Vite + Three.js med en snurrande kub.
+Startprojekt: Vite + Three.js med en boll som hoppar när man trycker på den.
 
 ## Kom igång
     npm install

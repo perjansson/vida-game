@@ -32,9 +32,10 @@ Säg "Vida, det här kan du fråga pappa om" när:
 Skriv då en kort teknisk förklaring riktad till Per, så att han snabbt kan hjälpa till.
 
 # Projektet
-Startprojektet finns redan och fungerar: en snurrande kub som byter färg när man klickar på den.
+Startprojektet finns redan och fungerar: en boll som hoppar uppåt och byter färg när man trycker på den. Trycker man många gånger håller den sig kvar i luften, och kameran följer med uppåt.
 - `index.html`: sidan och texten överst
-- `src/main.js`: all spelkod (scen, kamera, ljus, mark, kub, spelloop)
+- `src/main.js`: all spelkod (scen, kamera, ljus, mark, stjärnor, boll, spelloop). Överst finns inställningar som tyngdkraft och hoppfart.
+- Typsnittet Luckiest Guy följer med i bygget via `@fontsource/luckiest-guy`, inget hämtas från andra sajter.
 - `render.yaml`: konfiguration för statisk sajt på render.com
 - `npm run dev` startar spelet lokalt, `npm run build` bygger till `dist/`
 
