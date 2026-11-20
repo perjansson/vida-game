@@ -33,7 +33,7 @@ const TEXTS = {
     'Oj då!': 'Hups!', 'Hunden snubblade. Försök igen!': 'Koira kompastui. Yritä uudelleen!',
     'Försök igen': 'Yritä uudelleen', 'Garderoben': 'Vaatekaappi',
     'Bra sprunget!': 'Hyvin juostu!', 'Samla ben och köp hundar, kläder och leksaker': 'Kerää luita ja osta koiria, vaatteita ja leluja',
-    'Golden': 'Kultainennoutaja',
+    'Golden': 'Kultainennoutaja', 'Terrier': 'Terrieri',
     'Börja om från bana 1': 'Aloita alusta radalta 1', 'Säker? Tryck igen för att börja om': 'Varmasti? Paina uudelleen',
     'Matta': 'Matto', 'Blommor': 'Kukat', 'Ballonger': 'Ilmapallot', 'Korg': 'Kori', 'Träd': 'Puu', 'Hundkoja': 'Koirankoppi',
     'Lär': 'Opeta', 'Sitt': 'Istu', 'Snurra': 'Pyöri', 'Tass': 'Tassu', 'Dansa': 'Tanssi', 'Rulla': 'Kieri', 'Volt': 'Voltti',
@@ -621,6 +621,9 @@ const BREEDS = [
     ears: 'flap', tail: 'bushy', fur: 0xe2a94f, legFur: 0xe2a94f, earFur: 0xc98a3a, muzzle: 0xf0c880 },
   { name: 'Chihuahua', size: 0.62, legs: 0.85, snout: [0.8, 0.85, 0.85], eyes: 1.4,
     ears: 'pointy', earSize: 1.3, tail: 'long', fur: 0xd9a066, legFur: 0xd9a066, earFur: 0xc48a52, muzzle: 0xf3dcc0 },
+  // Terriern är gratis (den har inget pris i PRICE): liten, vit med bruna öron och lurvigt skägg
+  { name: 'Terrier', size: 0.78, legs: 0.9, cheeks: true, snout: [1.15, 0.95, 0.9],
+    ears: 'flap', earSize: 0.8, tail: 'long', fur: 0xffffff, legFur: 0xffffff, earFur: 0xa5672f, muzzle: 0xf4e7d3 },
 ];
 let breedIndex = 0;
 try { breedIndex = Number(localStorage.getItem('breed')) || 0; } catch {}
@@ -915,7 +918,10 @@ function showWardrobe() {
   const kind = tabs[activeTab];
   if ((tryOn && tryOn.kind !== kind) || (activeTab !== 0 && breedIndex !== myBreed) || (tryHome && !kind.home) || (tryTrick && !kind.tricks)) stopTrying();
   if (activeTab === 0) {
-    BREEDS.forEach((b, i) => {
+    // Visa hundarna man har först, sedan de som kostar ben (numren i BREEDS ändras inte)
+    const order = BREEDS.map((b, i) => i).sort((a, b) => have(BREEDS[b].name) - have(BREEDS[a].name));
+    order.forEach((i) => {
+      const b = BREEDS[i];
       const price = PRICE[b.name];
       const choose = () => {
         breedIndex = myBreed = i;
