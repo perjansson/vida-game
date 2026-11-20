@@ -354,6 +354,11 @@ for (const button of startScreen.querySelectorAll('button')) {
   });
 }
 
+// Jordglob-knappen öppnar språkvalet igen, mitt i spelet. Kläderna och namnet finns kvar.
+document.getElementById('language').addEventListener('click', () => {
+  startScreen.hidden = false;
+});
+
 // Anpassa till skärmens storlek, både stående och liggande
 function resize() {
   const aspect = window.innerWidth / window.innerHeight;
