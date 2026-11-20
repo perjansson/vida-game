@@ -76,7 +76,7 @@ const TEXTS = {
     'Tofs': 'Töyhtö', 'Tuppkam': 'Irokeesi', 'Lockar': 'Kiharat', 'Flätor': 'Letit',
     'Kalas': 'Juhlat', 'Hurra, jag fyller år!': 'Hurraa, minulla on synttärit!', 'Tack för kalaset!': 'Kiitos juhlista!', 'Vilken bana!': 'Mikä rata!', 'Agilitystjärna': 'Agilitytähti', 'Spring agilitybanan i parken': 'Juokse agilityrata puistossa',
     'Gå med piltangenterna eller tryck i gräset': 'Kävele nuolinäppäimillä tai napauta ruohoa',
-    'Nu åker jag!': 'Nyt mennään!', 'Högre!': 'Korkeammalle!', 'Wiii!': 'Jiihaa!', 'Lekplatsproffs': 'Leikkipuiston mestari', 'Åk rutschkana eller gunga i parken': 'Laske liukumäkeä tai keinu puistossa',
+    'Nu åker jag!': 'Nyt mennään!', 'Högre!': 'Korkeammalle!', 'Wiii!': 'Jiihaa!', 'Lekplatsproffs': 'Leikkipuiston mestari', 'Åk något på lekplatsen i parken': 'Kokeile jotain leikkipuistossa', 'Hopp hopp!': 'Hyppy hyppy!', 'Snurr snurr!': 'Pyöri pyöri!', 'Min tur!': 'Minun vuoro!', 'Köp glass': 'Osta jäätelö', 'Mums, glass!': 'Nam, jäätelöä!', 'Jag vill också ha!': 'Minäkin haluan!', 'Glassälskare': 'Jäätelön ystävä', 'Köp en glass i kiosken': 'Osta jäätelö kioskista', 'Dykare': 'Sukeltaja', 'Dyk ner i havet': 'Sukella mereen', 'Dyk': 'Sukella', 'Upp': 'Ylös', 'Blubb blubb!': 'Pulp pulp!', 'Ahh, luft!': 'Ahh, ilmaa!',
     'Jag tog den!': 'Sain sen!', 'Hundkompis': 'Koirakaveri', 'Hälsa på fem hundar i parken': 'Tervehdi viittä koiraa puistossa',
   },
   en: {
@@ -141,7 +141,7 @@ const TEXTS = {
     'Tofs': 'Ponytail', 'Tuppkam': 'Mohawk', 'Lockar': 'Curls', 'Flätor': 'Braids',
     'Kalas': 'Party', 'Hurra, jag fyller år!': "Hooray, it's my birthday!", 'Tack för kalaset!': 'Thanks for the party!', 'Vilken bana!': 'What a course!', 'Agilitystjärna': 'Agility star', 'Spring agilitybanan i parken': 'Run the agility course in the park',
     'Gå med piltangenterna eller tryck i gräset': 'Walk with the arrow keys or tap the grass',
-    'Nu åker jag!': 'Here I go!', 'Högre!': 'Higher!', 'Wiii!': 'Wheee!', 'Lekplatsproffs': 'Playground pro', 'Åk rutschkana eller gunga i parken': 'Ride the slide or the swing in the park',
+    'Nu åker jag!': 'Here I go!', 'Högre!': 'Higher!', 'Wiii!': 'Wheee!', 'Lekplatsproffs': 'Playground pro', 'Åk något på lekplatsen i parken': 'Try something at the playground', 'Hopp hopp!': 'Boing boing!', 'Snurr snurr!': 'Round and round!', 'Min tur!': 'My turn!', 'Köp glass': 'Buy ice cream', 'Mums, glass!': 'Yum, ice cream!', 'Jag vill också ha!': 'I want one too!', 'Glassälskare': 'Ice cream lover', 'Köp en glass i kiosken': 'Buy an ice cream at the kiosk', 'Dykare': 'Diver', 'Dyk ner i havet': 'Dive down in the sea', 'Dyk': 'Dive', 'Upp': 'Up', 'Blubb blubb!': 'Glub glub!', 'Ahh, luft!': 'Ahh, air!',
     'Jag tog den!': 'I got it!', 'Hundkompis': 'Dog friend', 'Hälsa på fem hundar i parken': 'Say hi to five dogs in the park',
   },
 };
@@ -1032,7 +1032,9 @@ const MEDALS = [
   ['🏠', 'Hemmafixare', 'Ha tre saker i trädgården', () => placed.size >= 3],
   ['😴', 'Sjusovare', 'Låt hunden sova i korgen', () => stats.sleeps > 0],
   ['🏆', 'Mästare', 'Kom till bana 6', () => level >= 6],
-  ['🛝', 'Lekplatsproffs', 'Åk rutschkana eller gunga i parken', () => stats.rides > 0],
+  ['🛝', 'Lekplatsproffs', 'Åk något på lekplatsen i parken', () => stats.rides > 0],
+  ['🍦', 'Glassälskare', 'Köp en glass i kiosken', () => stats.ices > 0],
+  ['🤿', 'Dykare', 'Dyk ner i havet', () => stats.dives > 0],
   ['🏅', 'Agilitystjärna', 'Spring agilitybanan i parken', () => stats.agility > 0],
   ['🏊', 'Simmare', 'Simma i havet', () => stats.swims > 0],
   ['🍪', 'Godisgivare', 'Ge godis till tre hundar', () => stats.treats >= 3],
@@ -1528,11 +1530,12 @@ const OBSTACLES = [
 // Här simmar hunden fritt. En genomskinlig vattenyta gör att bara halva hunden sticker upp.
 const seaWorld = group(scene);
 seaWorld.visible = false;
-const seabed = part(new THREE.PlaneGeometry(400, 400), mat(0x1c78b8), 0, -0.02, 0, seaWorld);
+const SEA_FLOOR = -4.2; // så djupt ner ligger botten
+const seabed = part(new THREE.PlaneGeometry(400, 400), mat(0xd9c58f), 0, SEA_FLOOR, 0, seaWorld);
 seabed.rotation.x = -Math.PI / 2;
 seabed.castShadow = false;
 const seaGroup = group(seaWorld); // allt som ligger på vattenytan
-const seaSurface = part(new THREE.PlaneGeometry(400, 400), new THREE.MeshStandardMaterial({ color: 0x3fb4f0, roughness: 0.25, transparent: true, opacity: 0.72 }), 0, 0, 0, seaGroup);
+const seaSurface = part(new THREE.PlaneGeometry(400, 400), new THREE.MeshStandardMaterial({ color: 0x3fb4f0, roughness: 0.25, transparent: true, opacity: 0.8, side: THREE.DoubleSide }), 0, 0, 0, seaGroup);
 seaSurface.rotation.x = -Math.PI / 2;
 seaSurface.castShadow = false;
 const SAND = mat(0xf2d79b);
@@ -1543,6 +1546,7 @@ const SEA_EDGE = 24; // så långt ut kan man simma
 for (const [x, z] of [[9, -5], [-8, 7], [3, 14], [-13, -9], [16, 9], [-3, -16], [20, -12], [-19, 2]]) { // öar med en palm
   const island = group(seaGroup, x, 0, z);
   dome(island, SAND, 1.6, -0.5);
+  part(new THREE.CylinderGeometry(1.6, 2.4, 5, 16), SAND, 0, -3, 0, island); // ön går hela vägen ner till botten
   part(new THREE.CylinderGeometry(0.1, 0.14, 1.6, 8), TRUNK, 0, 1.4, 0, island).rotation.z = 0.15;
   for (let k = 0; k < 5; k++) {
     const leaf = fluff(1, PALM, -0.1 + Math.cos(k * 1.26) * 0.5, 2.15, Math.sin(k * 1.26) * 0.5, island);
@@ -1585,14 +1589,80 @@ const floaters = [[5, 2, 0], [4, -9, 3], [-5, -3, 2], [-2, 6, 0], [11, 5, 1], [-
   seaThings.push([x, z, 0.75]);
   return g;
 });
-// Fiskar som hoppar upp ur vattnet nära hunden
-const fishes = [0xff9f1c, 0xffd93d, 0xff8fc7].map((color) => {
-  const fish = group(seaGroup);
+function makeFish(color, parent) {
+  const fish = group(parent);
   fluff(0.2, mat(color), 0, 0, 0, fish).scale.set(0.22, 0.12, 0.07);
   part(new THREE.ConeGeometry(0.1, 0.16, 4), mat(color), -0.24, 0, 0, fish).rotation.z = -Math.PI / 2;
   fluff(0.02, BLACK, 0.12, 0.03, 0.06, fish);
   fluff(0.02, BLACK, 0.12, 0.03, -0.06, fish);
-  return { fish, start: 0, x: 0, z: 0, turn: 0 };
+  return fish;
+}
+// Fiskar som hoppar upp ur vattnet nära hunden
+const fishes = [0xff9f1c, 0xffd93d, 0xff8fc7].map((color) => ({ fish: makeFish(color, seaGroup), start: 0, x: 0, z: 0, turn: 0 }));
+// Under ytan: sjögräs, koraller, snäckor, sjöstjärnor, en skattkista och fiskar som simmar runt
+const spread = (i, a, b) => [Math.sin(i * a) * 21, Math.cos(i * b) * 21]; // utspritt över botten, likadant varje gång
+const WEED = mat(0x1f9d6b);
+const seaweed = [];
+for (let i = 0; i < 34; i++) {
+  const [x, z] = spread(i, 12.9, 7.3);
+  const tall = 0.7 + (i % 4) * 0.3;
+  const weed = group(seaWorld, x, SEA_FLOOR, z);
+  fluff(1, WEED, 0, tall, 0, weed).scale.set(0.09, tall, 0.09);
+  fluff(1, WEED, 0.22, tall * 0.7, 0.1, weed).scale.set(0.07, tall * 0.7, 0.07);
+  seaweed.push(weed);
+}
+for (let i = 0; i < 16; i++) { // koraller
+  const [x, z] = spread(i, 5.1, 9.7);
+  const coral = group(seaWorld, x, SEA_FLOOR, z);
+  const m = mat([0xff8fc7, 0xff9f1c, 0x7b3fd1, 0xe63946][i % 4]);
+  for (let k = 0; k < 4; k++) fluff(0.2 + (k % 2) * 0.1, m, Math.cos(k * 1.9) * 0.28, 0.25 + k * 0.17, Math.sin(k * 1.9) * 0.28, coral);
+}
+for (let i = 0; i < 22; i++) { // snäckor
+  const [x, z] = spread(i, 3.7, 11.3);
+  dome(seaWorld, mat(i % 2 ? 0xffffff : 0xffc7dd), 0.16, SEA_FLOOR).position.set(x, SEA_FLOOR, z);
+}
+for (let i = 0; i < 12; i++) { // sjöstjärnor
+  const [x, z] = spread(i, 8.3, 2.9);
+  const star = group(seaWorld, x, SEA_FLOOR + 0.04, z);
+  for (let k = 0; k < 5; k++) fluff(1, mat(0xff9f1c), Math.cos(k * 1.257) * 0.14, 0, Math.sin(k * 1.257) * 0.14, star).scale.set(0.16, 0.05, 0.07);
+  star.children.forEach((arm, k) => (arm.rotation.y = -k * 1.257));
+}
+const chest = group(seaWorld, 6, SEA_FLOOR, 4); // en skattkista på botten
+part(new THREE.BoxGeometry(0.9, 0.5, 0.6), TRUNK, 0, 0.25, 0, chest);
+part(new THREE.CylinderGeometry(0.3, 0.3, 0.9, 12, 1, false, 0, Math.PI), TRUNK, 0, 0.5, 0, chest).rotation.set(0, 0, Math.PI / 2);
+for (const x of [-0.3, 0.3]) part(new THREE.BoxGeometry(0.08, 0.52, 0.62), mat(0xffd93d), x, 0.26, 0, chest);
+for (let k = 0; k < 5; k++) fluff(0.07, mat(0xffd93d), -0.3 + k * 0.15, 0.56 + (k % 2) * 0.05, 0.25, chest); // guldet tittar fram
+const deepFish = [0xff9f1c, 0x2a9dff, 0xffd93d, 0xff8fc7, 0x2ecc71, 0xe63946, 0xffffff, 0x7b3fd1, 0xff9f1c, 0x2a9dff].map((color, i) => {
+  const fish = makeFish(color, seaWorld);
+  fish.scale.setScalar(1 + (i % 3) * 0.4);
+  return fish;
+});
+const airBubbles = [0, 1, 2, 3, 4].map(() => fluff(0.05, new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.7 }), 0, 0, 0, seaWorld));
+const seaFog = new THREE.Fog(0x1c78b8, 2, 26); // under vattnet blir det blått och disigt längre bort
+const DIVE_DEPTH = -3; // så djupt simmar hunden när den dyker
+let diving = false;
+let depth = 0;
+function toggleDive(down = !diving) {
+  if (mode !== 'swim' || down === diving) return;
+  diving = down;
+  SOUND.Vatten();
+  say(diving ? 'Blubb blubb!' : 'Ahh, luft!');
+  if (diving) {
+    stats.dives = (stats.dives || 0) + 1;
+    checkMedals();
+  }
+  showDive();
+}
+function showDive() {
+  el('diveButton').textContent = diving ? '⬆️ ' + t('Upp') : '🤿 ' + t('Dyk');
+}
+window.addEventListener('keydown', (event) => {
+  if (mode !== 'swim') return;
+  if (event.code === 'Space') toggleDive();
+  else if (['ArrowDown', 'KeyS'].includes(event.code)) toggleDive(true);
+  else if (['ArrowUp', 'KeyW'].includes(event.code)) toggleDive(false);
+  else return;
+  event.preventDefault();
 });
 let surface = 0.5; // hur högt vattnet står (ändras efter hur stor hunden är)
 let heading = 0; // åt vilket håll hunden simmar
@@ -1612,11 +1682,14 @@ function startSwim() {
   steer = 0;
   speedY = 0;
   swimTime = 0;
+  diving = false;
+  depth = 0;
   SOUND.Vatten();
   showMode();
   say('Plask!');
 }
 function endSwim() {
+  scene.fog = null;
   stats.swims = (stats.swims || 0) + 1;
   mode = 'dress';
   goHome();
@@ -1649,8 +1722,23 @@ function updateSwim(dt, time) {
       dog.position.z = z + (dz / d) * reach;
     }
   }
-  dog.position.y = 0;
-  dog.rotation.set(0, heading, Math.sin(time * 3) * 0.05);
+  // Dyka: hunden glider mjukt ner mot botten, eller upp till ytan igen
+  const goal = diving ? DIVE_DEPTH : 0;
+  depth += (goal - depth) * Math.min(1, dt * 2.2);
+  dog.position.y = depth;
+  dog.rotation.set(0, heading, Math.sin(time * 3) * 0.05 + (goal - depth) * 0.25); // nosen pekar dit hunden är på väg
+  seaweed.forEach((weed, i) => (weed.rotation.z = Math.sin(time * 1.3 + i) * 0.18)); // sjögräset vajar
+  deepFish.forEach((fish, i) => {
+    const a = time * (0.25 + (i % 3) * 0.08) * (i % 2 ? 1 : -1) + i * 2; // fiskarna simmar runt i stora cirklar
+    const far = 4 + i * 1.7;
+    fish.position.set(Math.cos(a) * far, SEA_FLOOR + 0.8 + (i % 4) * 0.6 + Math.sin(time + i) * 0.15, -Math.sin(a) * far);
+    fish.rotation.y = a + (i % 2 ? Math.PI / 2 : -Math.PI / 2);
+  });
+  airBubbles.forEach((bubble, i) => {
+    const k = (time * 0.7 + i / 5) % 1; // luftbubblor stiger från nosen när hunden är under ytan
+    bubble.visible = depth < -0.6;
+    bubble.position.set(dog.position.x + Math.cos(heading) * 0.5 + Math.sin(i * 2.1) * 0.12, depth + 0.9 * breed.size + k * 1.6, dog.position.z - Math.sin(heading) * 0.5 + Math.cos(i * 1.7) * 0.12);
+  });
   floaters.forEach((g, i) => {
     g.rotation.z = Math.sin(time * 1.6 + i) * 0.1; // allt som flyter guppar
     g.position.y = Math.sin(time * 2 + i * 2) * 0.04;
@@ -1675,8 +1763,11 @@ function updateSwim(dt, time) {
   cameraHeading += (heading - cameraHeading) * Math.min(1, dt * 2.5);
   const narrow = camera.aspect < 1;
   const back = narrow ? 5.4 : 4.4;
-  camera.position.set(dog.position.x - Math.cos(cameraHeading) * back, narrow ? 4.4 : 3.3, dog.position.z + Math.sin(cameraHeading) * back);
-  camera.lookAt(dog.position.x + Math.cos(cameraHeading) * 3.5, 0.5, dog.position.z - Math.sin(cameraHeading) * 3.5);
+  camera.position.set(dog.position.x - Math.cos(cameraHeading) * back, (narrow ? 4.4 : 3.3) + depth * 1.25, dog.position.z + Math.sin(cameraHeading) * back);
+  camera.lookAt(dog.position.x + Math.cos(cameraHeading) * 3.5, 0.5 + depth, dog.position.z - Math.sin(cameraHeading) * 3.5);
+  const under = camera.position.y < surface; // är kameran under ytan blir allt blått
+  scene.fog = under ? seaFog : null;
+  scene.background.setHex(under ? 0x1c78b8 : HOME_SKY);
 }
 // Pilknapparna svänger så länge man håller in dem. Piltangenterna och A/D fungerar också.
 for (const [id, way] of [['left', -1], ['right', 1]]) {
@@ -2137,6 +2228,7 @@ function showMode() {
   el('swimHint').textContent = t('Håll in pilarna för att svänga');
   el('swimTitle').textContent = '🏊 ' + t('Simma');
   el('swimHome').textContent = '🏠 ' + t('Gå hem');
+  showDive();
   el('swimButton').textContent = '🏊 ' + t('Simma');
   el('runButton').textContent = '🏃 ' + t('Spring bana {n}!').replace('{n}', level);
   el('lostTitle').textContent = t('Oj då!');
@@ -2200,7 +2292,7 @@ const PARK_BACK = -11;
 const PARK_FRONT = 5;
 const parkSolids = []; // sådant man inte kan gå igenom: [x, z, hur stort]
 for (const [x, z, size] of [[-4.2, -3.6, 1.2], [3.6, -4.2, 1.4], [0.2, -5.5, 1.1], [-7.5, -8.5, 1.3], [7.5, -4.6, 1.2], [-11.5, -2.5, 1.3], [2.2, -9.2, 1.2],
-  [-13, -8.5, 1.4], [13, -8.5, 1.3], [5, -9.3, 1.3], [-3.5, -9.6, 1.2], [0.8, -10.2, 1.1], [-13.6, -5.4, 1.1], [10, -9.8, 1.0]]) {
+  [-13, -8.5, 1.4], [14.3, -10.3, 1.3], [5, -9.3, 1.3], [-3.5, -9.6, 1.2], [0.8, -10.2, 1.1], [-13.6, -5.4, 1.1], [10, -9.8, 1.0]]) {
   part(new THREE.CylinderGeometry(0.16 * size, 0.22 * size, 1.4 * size, 8), TRUNK, x, 0.7 * size, z, parkGroup);
   fluff(0.95 * size, LEAVES, x, 1.9 * size, z, parkGroup);
   fluff(0.65 * size, LEAVES, x + 0.6 * size, 1.5 * size, z + 0.2, parkGroup);
@@ -2293,64 +2385,160 @@ part(new THREE.BoxGeometry(0.8, 0.36, 0.05), YELLOW, 0.1, 1.05, 0, sign);
 part(new THREE.ConeGeometry(0.22, 0.28, 3), YELLOW, 0.62, 1.05, 0, sign).rotation.z = -Math.PI / 2;
 parkSolids.push([7.4, -2.1, 0.2]);
 
-let ride = null; // { kind: 'slide' | 'swing', time } medan hunden åker
+// Studsmatta
+const TRAMP = { x: 11.6, z: -8.3 };
+const tramp = group(parkGroup, TRAMP.x, 0, TRAMP.z);
+part(new THREE.TorusGeometry(0.85, 0.09, 8, 24), BLUE, 0, 0.32, 0, tramp).rotation.x = Math.PI / 2;
+part(new THREE.CylinderGeometry(0.82, 0.82, 0.03, 24), mat(0x3a3a48), 0, 0.3, 0, tramp);
+for (let k = 0; k < 6; k++) part(new THREE.CylinderGeometry(0.03, 0.03, 0.3, 6), WHITE, Math.cos(k * 1.047) * 0.85, 0.15, Math.sin(k * 1.047) * 0.85, tramp);
+// Karusell: hela den här gruppen snurrar
+const CAROUSEL = { x: 14, z: -7.6 };
+const carousel = group(parkGroup, CAROUSEL.x, 0, CAROUSEL.z);
+part(new THREE.CylinderGeometry(0.9, 0.9, 0.12, 24), YELLOW, 0, 0.12, 0, carousel);
+part(new THREE.CylinderGeometry(0.07, 0.07, 1.1, 8), RED, 0, 0.7, 0, carousel);
+part(new THREE.ConeGeometry(0.3, 0.25, 12), RED, 0, 1.36, 0, carousel);
+[0xe63946, 0x2a9dff, 0x2ecc71, 0xff8fc7].forEach((color, k) => {
+  part(new THREE.CylinderGeometry(0.03, 0.03, 0.7, 6), mat(color), Math.cos(k * 1.571) * 0.78, 0.5, Math.sin(k * 1.571) * 0.78, carousel);
+});
+
+// Varje sak på lekplatsen: var man kliver på, hur länge man åker och var man hamnar efteråt
+const RIDES = {
+  slide: { x: SLIDE.x - 1.85, z: SLIDE.z, reach: 0.8, time: 2, out: [SLIDE.x + 2.3, SLIDE.z], says: 'Nu åker jag!' },
+  swing: { x: SWING.x, z: SWING.z + 0.35, reach: 0.75, time: 6, out: [SWING.x, SWING.z + 1.3], says: 'Högre!' },
+  tramp: { x: TRAMP.x, z: TRAMP.z, reach: 0.6, time: 5, out: [TRAMP.x, TRAMP.z + 1.5], says: 'Hopp hopp!' },
+  carousel: { x: CAROUSEL.x, z: CAROUSEL.z, reach: 0.65, time: 6, out: [CAROUSEL.x - 1.6, CAROUSEL.z + 0.5], says: 'Snurr snurr!' },
+};
+// Ställer en hund på rätt plats när den har åkt i t sekunder. Fungerar för både min hund och kompisen.
+function rideMove(d, kind, t) {
+  if (kind === 'slide') {
+    const up = Math.min(1, t / 0.8); // först klättrar hunden upp för stegen
+    const down = Math.max(0, Math.min(1, (t - 1.1) / 0.9)); // sedan åker den ner
+    if (down === 0) {
+      d.position.set(SLIDE.x - 1.7 + up * 1.1, up * 1.36, SLIDE.z);
+      d.rotation.set(0, 0, up < 1 ? 0.6 : 0);
+    } else {
+      d.position.set(SLIDE.x - 0.3 + down * 2.1, 1.38 - down * 1.25, SLIDE.z);
+      d.rotation.set(0, 0, -0.5);
+    }
+  } else if (kind === 'swing') {
+    const strength = Math.min(1, t) * Math.min(1, RIDES.swing.time - t); // börjar mjukt och slutar mjukt
+    const a = Math.sin(t * 2.8) * 0.75 * strength;
+    swingSeat.rotation.x = -a;
+    d.position.set(SWING.x, 2.05 - Math.cos(a) * 1.47, SWING.z + Math.sin(a) * 1.47);
+    d.rotation.set(-a, -Math.PI / 2, 0); // nosen mot kameran
+  } else if (kind === 'tramp') {
+    const height = 0.5 + Math.min(t, 4) * 0.4; // högre och högre för varje hopp
+    d.position.set(TRAMP.x, 0.32 + Math.abs(Math.sin((t / 0.8) * Math.PI)) * height, TRAMP.z);
+    d.rotation.set(0, -0.3 + (t > 4 ? (t - 4) * Math.PI * 2 : 0), 0); // en snurr i sista hoppet
+  } else {
+    const a = (1 - Math.cos((Math.PI * t) / RIDES.carousel.time)) * 6; // snurrar igång mjukt och stannar mjukt
+    carousel.rotation.y = a;
+    d.position.set(CAROUSEL.x + Math.cos(a) * 0.55, 0.19, CAROUSEL.z - Math.sin(a) * 0.55);
+    d.rotation.set(0, a + Math.PI / 2, 0);
+  }
+}
+let ride = null; // { kind, time } medan min hund åker
+let friendRide = null; // samma sak för kompisen, som åker efter min hund
 let rideReady = true; // man måste gå en bit bort innan man kan åka igen
-const SWING_TIME = 6;
 function updateRide(dt) {
-  if (mode !== 'park') { ride = null; return; }
-  const toLadder = Math.hypot(dog.position.x - (SLIDE.x - 1.85), dog.position.z - SLIDE.z);
-  const toSeat = Math.hypot(dog.position.x - SWING.x, dog.position.z - (SWING.z + 0.35));
+  if (mode !== 'park') { ride = friendRide = null; return; }
+  if (friendRide && friend) {
+    // Kompisens tur
+    friendRide.time += dt;
+    rideMove(friend.dog, friendRide.kind, friendRide.time);
+    if (friendRide.time > RIDES[friendRide.kind].time) {
+      const [x, z] = RIDES[friendRide.kind].out;
+      friend.dog.position.set(x + 0.9, 0, z);
+      friend.dog.rotation.set(0, Math.PI + 0.45, 0);
+      friend.hop = 1;
+      friendSays(t('Wiii!'));
+      friendRide = null;
+    }
+  }
+  const near = (spot) => Math.hypot(dog.position.x - spot.x, dog.position.z - spot.z);
   if (!ride) {
-    swingSeat.rotation.x *= 1 - Math.min(1, dt * 3); // gungan stannar av sig själv
-    if (toLadder > 1.5 && toSeat > 1.5) rideReady = true;
-    if (!rideReady || play) return;
-    if (toLadder < 0.8) ride = { kind: 'slide', time: 0 };
-    else if (toSeat < 0.75) ride = { kind: 'swing', time: 0 };
-    if (!ride) return;
+    if (!friendRide) swingSeat.rotation.x *= 1 - Math.min(1, dt * 3); // gungan stannar av sig själv
+    if (Object.values(RIDES).every((spot) => near(spot) > 1.5)) rideReady = true;
+    if (!rideReady || play || friendRide) return;
+    const kind = Object.keys(RIDES).find((name) => near(RIDES[name]) < RIDES[name].reach);
+    if (!kind) return;
+    ride = { kind, time: 0 };
     rideReady = false;
     strollTo = null;
     SOUND.jump();
-    say(ride.kind === 'slide' ? 'Nu åker jag!' : 'Högre!');
+    say(RIDES[kind].says);
   }
   ride.time += dt;
   speedY = 0;
-  if (ride.kind === 'slide') {
-    const up = Math.min(1, ride.time / 0.8); // först klättrar hunden upp för stegen
-    const down = Math.max(0, Math.min(1, (ride.time - 1.1) / 0.9)); // sedan åker den ner
-    if (down === 0) {
-      dog.position.set(SLIDE.x - 1.7 + up * 1.1, up * 1.36, SLIDE.z);
-      dog.rotation.set(0, 0, up < 1 ? 0.6 : 0);
-    } else {
-      if (!ride.whee) { ride.whee = true; tone(950, 320, 0.85, 'sine', 0.1); say('Wiii!'); }
-      dog.position.set(SLIDE.x - 0.3 + down * 2.1, 1.38 - down * 1.25, SLIDE.z);
-      dog.rotation.set(0, 0, -0.5);
+  rideMove(dog, ride.kind, ride.time);
+  if (ride.kind === 'slide' && ride.time > 1.1 && !ride.whee) {
+    ride.whee = true;
+    tone(950, 320, 0.85, 'sine', 0.1);
+    say('Wiii!');
+  }
+  if (ride.kind === 'tramp' && Math.floor(ride.time / 0.8) !== ride.hops) {
+    ride.hops = Math.floor(ride.time / 0.8);
+    SOUND.Leka(); // ett studsljud för varje hopp
+  }
+  if (ride.time > RIDES[ride.kind].time) {
+    const [x, z] = RIDES[ride.kind].out;
+    dog.position.set(x, 0, z);
+    dog.rotation.set(0, -0.3, 0);
+    speedY = TAP_SPEED * 0.7;
+    SOUND.happy();
+    burst('⭐');
+    stats.rides = (stats.rides || 0) + 1;
+    if (friend && friend.arrived) {
+      friendRide = { kind: ride.kind, time: 0 }; // nu vill kompisen också åka
+      friendSays(t('Min tur!'));
     }
-    if (ride.time > 2.0) {
-      dog.position.set(SLIDE.x + 2.3, 0, SLIDE.z);
-      dog.rotation.set(0, -0.3, 0);
-      speedY = TAP_SPEED * 0.7;
-      SOUND.happy();
-      burst('⭐');
-      stats.rides = (stats.rides || 0) + 1;
-      ride = null;
-      checkMedals();
-    }
-  } else {
-    const strength = Math.min(1, ride.time) * Math.min(1, SWING_TIME - ride.time); // börjar mjukt och slutar mjukt
-    const a = Math.sin(ride.time * 2.8) * 0.75 * strength;
-    swingSeat.rotation.x = -a;
-    dog.position.set(SWING.x, 2.05 - Math.cos(a) * 1.47, SWING.z + Math.sin(a) * 1.47);
-    dog.rotation.set(-a, -Math.PI / 2, 0); // nosen mot kameran
-    if (ride.time > SWING_TIME) {
-      dog.position.set(SWING.x, 0, SWING.z + 1.3);
-      dog.rotation.set(0, -0.3, 0);
-      speedY = TAP_SPEED * 0.7;
-      SOUND.happy();
-      burst('⭐');
-      stats.rides = (stats.rides || 0) + 1;
-      ride = null;
-      checkMedals();
-    }
+    ride = null;
+    checkMedals();
+  }
+}
+
+// Glasskiosken
+const KIOSK = { x: 0.6, z: -3.1 };
+const kiosk = group(parkGroup, KIOSK.x, 0, KIOSK.z);
+part(new THREE.BoxGeometry(1.5, 1.0, 1.0), mat(0xff8fc7), 0, 0.5, 0, kiosk);
+part(new THREE.BoxGeometry(1.62, 0.08, 1.12), WHITE, 0, 1.03, 0, kiosk); // disken
+for (const x of [-0.7, 0.7]) for (const z of [-0.45, 0.45]) part(new THREE.CylinderGeometry(0.03, 0.03, 0.85, 6), WHITE, x, 1.48, z, kiosk);
+part(new THREE.BoxGeometry(1.9, 0.1, 1.4), WHITE, 0, 1.94, 0.05, kiosk); // randigt tak
+for (const x of [-0.72, -0.24, 0.24, 0.72]) part(new THREE.BoxGeometry(0.24, 0.11, 1.41), RED, x, 1.94, 0.05, kiosk);
+part(new THREE.ConeGeometry(0.2, 0.5, 12), mat(0xe0a458), 0, 2.25, 0, kiosk).rotation.x = Math.PI; // en stor glass på taket
+fluff(0.24, mat(0xfff1c9), 0, 2.62, 0, kiosk);
+fluff(0.2, mat(0xff8fc7), 0, 2.9, 0, kiosk);
+fluff(0.07, RED, 0, 3.12, 0, kiosk);
+parkSolids.push([KIOSK.x - 0.4, KIOSK.z, 0.7], [KIOSK.x + 0.4, KIOSK.z, 0.7]);
+// Glassen som hunden får sitter framför nosen en stund
+const iceCream = group(head, 0.47, -0.12, 0);
+part(new THREE.ConeGeometry(0.06, 0.2, 10), mat(0xe0a458), 0, -0.08, 0, iceCream).rotation.x = Math.PI;
+fluff(0.08, mat(0xff8fc7), 0, 0.06, 0, iceCream);
+fluff(0.06, mat(0xfff1c9), 0, 0.16, 0, iceCream);
+iceCream.visible = false;
+const ICE_PRICE = 3;
+let iceTime = 0; // så länge har hunden glassen kvar
+let nearKiosk = false;
+function buyIce() {
+  if (!nearKiosk || bones < ICE_PRICE || ride) return;
+  bones -= ICE_PRICE;
+  try { localStorage.setItem('bones', bones); } catch {}
+  stats.ices = (stats.ices || 0) + 1;
+  iceTime = 6;
+  SOUND.Mat();
+  burst('🍦');
+  say('Mums, glass!');
+  if (friend && friend.arrived) friendSays(t('Jag vill också ha!'));
+  checkMedals();
+  showPark();
+}
+function updateKiosk(dt) {
+  iceTime -= dt;
+  iceCream.visible = iceTime > 0 && mode === 'park';
+  const near = mode === 'park' && Math.hypot(dog.position.x - KIOSK.x, dog.position.z - (KIOSK.z + 1.2)) < 1.4;
+  if (near !== nearKiosk) {
+    nearKiosk = near;
+    showPark(); // knappen för att köpa glass syns bara vid kiosken
   }
 }
 
@@ -2436,6 +2624,7 @@ function friendSays(text) {
 }
 function removeFriend() {
   play = null;
+  friendRide = null;
   playBall.visible = false;
   if (!friend) return;
   scene.remove(friend.dog);
@@ -2477,7 +2666,8 @@ function newFriend() {
 }
 let lastFriendBreed = -1;
 function startPark() {
-  ride = null;
+  ride = friendRide = null;
+  iceTime = 0;
   rideReady = true;
   strollTo = null;
   parkCameraX = MY_SPOT + 0.8;
@@ -2521,7 +2711,7 @@ let play = null; // { phase: 'fly' | 'chase' | 'back', time, x, z, friendSpeed }
 const TOWARD_RIGHT = -0.3; // hunden tittar åt höger, lite mot kameran
 const TOWARD_LEFT = Math.PI + 0.3;
 function startPlay() {
-  if (!friend || !friend.greeted || play) return;
+  if (!friend || !friend.greeted || play || ride || friendRide) return;
   SOUND.Leka();
   const reach = Math.min(2.2, 1.1 + camera.aspect); // på smal skärm kastas bollen inte lika långt åt sidan
   const x = Math.max(-PARK_X + 1, Math.min(PARK_X - 1, dog.position.x + (Math.random() * 2 - 1) * reach));
@@ -2651,6 +2841,9 @@ function giveTreat() {
 function showPark() {
   el('parkButton').textContent = '🌳 ' + t('Hundparken');
   el('agilityButton').textContent = '🏅 Agility';
+  el('iceButton').hidden = !nearKiosk;
+  el('iceButton').textContent = `🍦 ${t('Köp glass')} 🦴${ICE_PRICE}`;
+  el('iceButton').disabled = bones < ICE_PRICE;
   if (!friend) return;
   const here = friend.arrived;
   el('dpad').style.bottom = el('park').offsetHeight + 10 + 'px'; // pilknapparna sitter precis ovanför panelen
@@ -2673,6 +2866,7 @@ function showPark() {
 function updatePark(dt, time) {
   updateStroll(dt);
   updateRide(dt);
+  updateKiosk(dt);
   if (mode === 'park') updateParkAnimals(time);
   friendBubbleTime -= dt;
   friendBubble.hidden = friendBubbleTime <= 0 || !friend;
@@ -2691,6 +2885,8 @@ function updatePark(dt, time) {
       friendSays(t('Hej! Jag heter {n}').replace('{n}', friend.name));
       showPark();
     }
+  } else if (friendRide) {
+    // kompisen åker på lekplatsen, se updateRide
   } else if (play) {
     updatePlay(dt, time);
   } else {
@@ -2721,10 +2917,12 @@ el('runButton').addEventListener('click', startRun);
 el('parkButton').addEventListener('click', startPark);
 el('swimButton').addEventListener('click', startSwim);
 el('swimHome').addEventListener('click', endSwim);
+el('diveButton').addEventListener('click', () => toggleDive());
 el('agilityButton').addEventListener('click', startAgility);
 el('greet').addEventListener('click', greet);
 el('playButton').addEventListener('click', startPlay);
 el('treatButton').addEventListener('click', giveTreat);
+el('iceButton').addEventListener('click', buyIce);
 el('nextFriend').addEventListener('click', () => { SOUND.pop(); newFriend(); });
 el('parkHome').addEventListener('click', leavePark);
 el('retry').addEventListener('click', startRun);
@@ -2810,12 +3008,16 @@ if (location.hash.startsWith('#park')) { // testläge: hundparken, #park2 = efte
   startScreen.hidden = true;
   startPark();
   friend.dog.position.x = friend.spot.x + 0.001;
-  if (['#park6', '#park7', '#park8'].includes(location.hash)) { // lekplatsen: 6 = på väg ner för rutschkanan, 7 = på gungan, 8 = översikt
-    const n = Number(location.hash[5]);
-    dog.position.set(n === 6 ? SLIDE.x - 1.85 : n === 7 ? SWING.x : 11.5, 0, n === 6 ? SLIDE.z : n === 7 ? SWING.z + 0.35 : -1.5);
-    if (n < 8) for (let i = 0; i < (n === 6 ? 30 : 34); i++) updateRide(0.05);
+  if (location.hash.startsWith('#park:')) { // lekplatsen: #park:tramp:25 = studsmattan efter 25 små tidssteg, #park:kiosk = vid glasskiosken
+    const [, kind, steps] = location.hash.split(':');
+    if (kind === 'kiosk') { dog.position.set(KIOSK.x - 0.6, 0, KIOSK.z + 1.3); updateKiosk(0); buyIce(); }
+    else {
+      dog.position.set(RIDES[kind].x, 0, RIDES[kind].z);
+      friend.arrived = true;
+      for (let i = 0; i < Number(steps); i++) updateRide(0.1);
+    }
     parkCameraX = dog.position.x + 0.8;
-    parkCameraZ = n === 8 ? 0 : dog.position.z;
+    parkCameraZ = Math.min(dog.position.z, RIDES[kind] ? RIDES[kind].z + 1 : 0);
   }
   if (location.hash === '#park5') { strollTo = { x: -7, z: -3.5 }; friend.arrived = true; friend.dog.position.x = friend.spot.x; for (let i = 0; i < 60; i++) { updateStroll(0.05); updatePark(0.05, i * 0.05); } parkCameraX = dog.position.x + 0.8; parkCameraZ = dog.position.z; }
   else if (location.hash !== '#park') setTimeout(greet, 300);
@@ -2830,6 +3032,7 @@ if (location.hash.startsWith('#swim')) { // testläge: simma, #swim2 = lite län
   startScreen.hidden = true;
   startSwim();
   if (location.hash === '#swim2') { dog.position.set(2, 0, -3); heading = cameraHeading = 0.9; }
+  if (location.hash === '#swim3') { toggleDive(true); depth = DIVE_DEPTH; dog.position.set(1.5, 0, 3.2); heading = cameraHeading = 0.15; } // under vattnet
 }
 if (location.hash === '#party') { // testläge: kalaset
   startScreen.hidden = true;
