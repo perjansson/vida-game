@@ -736,22 +736,28 @@ renderer.domElement.addEventListener('pointerdown', (event) => {
 
 // Svep på banan: åt sidan byter fil, uppåt hoppar. Ett tryck utan svep hoppar också.
 let swipe = null;
-const SWIPE = 28; // så många pixlar måste fingret flytta sig för att det ska räknas som ett svep
-window.addEventListener('pointermove', (event) => {
-  if (!swipe || mode !== 'run') return;
+const SWIPE = 16; // så många pixlar måste fingret flytta sig för att det ska räknas som ett svep
+function readSwipe(event, limit) {
+  if (!swipe || mode !== 'run') return false;
   const dx = event.clientX - swipe.x;
   const dy = event.clientY - swipe.y;
-  if (Math.abs(dx) > SWIPE && Math.abs(dx) > Math.abs(dy)) {
+  if (Math.abs(dx) > limit && Math.abs(dx) > Math.abs(dy)) {
     changeLane(Math.sign(dx));
-  } else if (dy < -SWIPE && Math.abs(dy) > Math.abs(dx)) {
+  } else if (dy < -limit && Math.abs(dy) > Math.abs(dx)) {
     jump();
   } else {
-    return;
+    return false;
   }
-  swipe = { x: event.clientX, y: event.clientY, used: true }; // man kan svepa vidare utan att lyfta fingret
+  return true;
+}
+window.addEventListener('pointermove', (event) => {
+  // Ett finger kan bara göra en sak per svep, så att hunden inte byter två filer av misstag
+  if (swipe && !swipe.used && readSwipe(event, SWIPE)) swipe.used = true;
 });
-window.addEventListener('pointerup', () => {
-  if (swipe && !swipe.used) jump();
+window.addEventListener('pointerup', (event) => {
+  // Ett snabbt litet svep hinner ibland inte märkas förrän fingret släpper, så kolla en gång till här.
+  // Rörde sig fingret nästan inte alls var det ett vanligt tryck: hoppa.
+  if (swipe && !swipe.used && !readSwipe(event, 8)) jump();
   swipe = null;
 });
 window.addEventListener('pointercancel', () => (swipe = null));

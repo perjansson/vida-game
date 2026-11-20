@@ -8,6 +8,7 @@
       [hidden] { display: none !important; }
       body, button, input { font-family: 'Fredoka', system-ui, sans-serif; font-weight: 600; }
       h2, #info { font-weight: 700 !important; }
+      html, body { overscroll-behavior: none; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
       html, body { margin: 0; height: 100%; overflow: hidden; background: #1b1035; }
       canvas { display: block; touch-action: none; }
       #info {
@@ -27,6 +28,7 @@
         pointer-events: none;
       }
       #name {
+        -webkit-user-select: text; user-select: text;
         pointer-events: auto;
         font-family: 'Fredoka', system-ui, sans-serif;
         font-size: clamp(18px, 4.5vw, 24px); letter-spacing: 1px; text-align: center;
