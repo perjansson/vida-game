@@ -73,6 +73,7 @@ const TEXTS = {
     'Vi är kompisar nu!': 'Nyt ollaan kavereita!', 'Vill du leka?': 'Leikitäänkö?', 'Hej kompis!': 'Hei kaveri!', 'Voff voff!': 'Hau hau!',
     'Simma': 'Ui', 'Tryck på pilarna för att styra hunden': 'Ohjaa koiraa nuolilla', 'Vad skönt det var!': 'Olipa ihanaa!', 'Simmare': 'Uimari', 'Simma i havet': 'Ui meressä',
     'Ge godis': 'Anna herkku', 'Mums! Tack!': 'Nam! Kiitos!', 'Så gott!': 'Tosi hyvää!', 'Du är snäll!': 'Olet kiltti!', 'Varsågod!': 'Ole hyvä!', 'Godisgivare': 'Herkkujen antaja', 'Ge godis till tre hundar': 'Anna herkku kolmelle koiralle',
+    'Tofs': 'Töyhtö', 'Tuppkam': 'Irokeesi', 'Lockar': 'Kiharat', 'Flätor': 'Letit',
     'Jag tog den!': 'Sain sen!', 'Hundkompis': 'Koirakaveri', 'Hälsa på fem hundar i parken': 'Tervehdi viittä koiraa puistossa',
   },
   en: {
@@ -134,6 +135,7 @@ const TEXTS = {
     'Vi är kompisar nu!': 'We are friends now!', 'Vill du leka?': 'Want to play?', 'Hej kompis!': 'Hi friend!', 'Voff voff!': 'Woof woof!',
     'Simma': 'Swim', 'Tryck på pilarna för att styra hunden': 'Tap the arrows to steer the dog', 'Vad skönt det var!': 'That was lovely!', 'Simmare': 'Swimmer', 'Simma i havet': 'Swim in the sea',
     'Ge godis': 'Give a treat', 'Mums! Tack!': 'Yum! Thanks!', 'Så gott!': 'So tasty!', 'Du är snäll!': 'You are kind!', 'Varsågod!': 'Here you go!', 'Godisgivare': 'Treat giver', 'Ge godis till tre hundar': 'Give treats to three dogs',
+    'Tofs': 'Ponytail', 'Tuppkam': 'Mohawk', 'Lockar': 'Curls', 'Flätor': 'Braids',
     'Jag tog den!': 'I got it!', 'Hundkompis': 'Dog friend', 'Hälsa på fem hundar i parken': 'Say hi to five dogs in the park',
   },
 };
@@ -463,6 +465,30 @@ const wardrobe = [
     ],
   },
   {
+    // Frisören: frisyrer som man kan färga i vilken färg man vill
+    id: 'hair', icon: '✂️', parent: head,
+    options: [
+      ['Tofs', 0xff8fc7, (g, m) => {
+        part(new THREE.CylinderGeometry(0.06, 0.06, 0.07, 10), mat(0xffffff), 0, 0.4, 0, g); // snodd
+        fluff(0.1, m, 0, 0.5, 0, g);
+        for (const [x, z] of [[0.1, 0], [-0.1, 0], [0, 0.1], [0, -0.1]]) fluff(0.08, m, x, 0.56, z, g);
+      }],
+      ['Tuppkam', 0x7b3fd1, (g, m) => {
+        for (let i = 0; i < 6; i++) fluff(0.09 - Math.abs(i - 2) * 0.008, m, 0.2 - i * 0.09, 0.34 + Math.sin((i / 5) * Math.PI) * 0.1, 0, g).scale.y = 0.15;
+      }],
+      ['Lockar', 0xffd93d, (g, m) => {
+        for (let i = 0; i < 9; i++) fluff(0.085, m, Math.cos(i * 0.7) * 0.17 - 0.03, 0.3 + (i % 2) * 0.05, Math.sin(i * 0.7) * 0.19, g);
+        fluff(0.1, m, -0.02, 0.38, 0, g);
+      }],
+      ['Flätor', 0x2a9dff, (g, m) => {
+        for (const side of [-1, 1]) {
+          for (let i = 0; i < 4; i++) fluff(0.085 - i * 0.006, m, -0.2 - i * 0.03, 0.2 - i * 0.13, side * (0.25 + i * 0.03), g);
+          bow(g, mat(0xffffff), -0.3, -0.28, side * 0.36, 0.6);
+        }
+      }],
+    ],
+  },
+  {
     id: 'glasses', icon: '🕶️', parent: head,
     options: [
       ['Solbrillor', 0x222222, (g, m) => glasses(g, mat(0x111111), m)],
@@ -657,10 +683,13 @@ if (!BREEDS[breedIndex] || !have(BREEDS[breedIndex].name)) breedIndex = 0;
 let myBreed = breedIndex; // den hund man äger och har valt (breedIndex kan vara en man bara tittar på)
 let breed = BREEDS[breedIndex];
 const hats = wardrobe.find((kind) => kind.id === 'hat');
-function showBreed() {
+let furColor = null; // färgad päls från frisören (null = hundens egen färg)
+try { furColor = JSON.parse(localStorage.getItem('fur')); } catch {}
+function showBreed(natural) {
   breed = BREEDS[breedIndex];
-  FUR.color.setHex(breed.fur);
-  LEG_FUR.color.setHex(breed.legFur);
+  const dyed = furColor !== null && !natural && breedIndex === myBreed;
+  FUR.color.setHex(dyed ? furColor : breed.fur);
+  LEG_FUR.color.setHex(dyed ? furColor : breed.legFur);
   EAR_FUR.color.setHex(breed.earFur);
   MUZZLE.color.setHex(breed.muzzle);
 
@@ -1069,6 +1098,18 @@ function showWardrobe() {
         button(chipsBar, 'chip poor', `🦴${price} – ${t('spring fler banor!')}`, false, () => SOUND.hit());
       }
     });
+    // Färgprickarna färgar pälsen på den hund man har. Krysset ger tillbaka hundens egen färg.
+    const dye = (color) => {
+      stopTrying();
+      furColor = color;
+      try { localStorage.setItem('fur', JSON.stringify(color)); } catch {}
+      showBreed();
+      if (color !== null) say('Vad fin jag blir!');
+    };
+    button(colorsBar, 'dot', '✖', furColor === null, () => dye(null)).style.background = '#fff';
+    for (const color of COLORS) {
+      button(colorsBar, 'dot', '', color === furColor, () => dye(color)).style.background = '#' + color.toString(16).padStart(6, '0');
+    }
   } else if (kind.tricks) {
     for (const name of Object.keys(TRICKS)) {
       const price = PRICE[name];
@@ -2037,7 +2078,7 @@ function newFriend() {
   const mine = { breed: breedIndex, outfit: wardrobe.map((kind) => [kind.choice, kind.color]) };
   const others = BREEDS.map((b, i) => i).filter((i) => i !== myBreed && i !== lastFriendBreed);
   breedIndex = lastFriendBreed = others[Math.floor(Math.random() * others.length)];
-  showBreed();
+  showBreed(true);
   for (const kind of wardrobe) {
     const choice = Math.random() < 0.5 ? -1 : Math.floor(Math.random() * kind.options.length);
     wear(kind, choice, COLORS[Math.floor(Math.random() * COLORS.length)]);
@@ -2297,7 +2338,7 @@ resetButton.addEventListener('click', () => {
     return;
   }
   try {
-    for (const key of ['level', 'bones', 'owned', 'outfit', 'home', 'breed', 'stats', 'medals']) localStorage.removeItem(key);
+    for (const key of ['level', 'bones', 'owned', 'outfit', 'home', 'breed', 'stats', 'medals', 'fur']) localStorage.removeItem(key);
   } catch {}
   location.hash = '';
   location.reload();
@@ -2326,6 +2367,11 @@ if (location.hash.startsWith('#park')) { // testläge: hundparken, #park2 = efte
       for (let i = 0; i < Number(location.hash[6] || 0) * 10; i++) updatePlay(0.05, i * 0.05);
     }, 400);
   }
+}
+if (location.hash.startsWith('#hair')) { // testläge: bara en frisyr, #hair2 = frisyr nummer 2
+  startScreen.hidden = true;
+  for (const kind of wardrobe) wear(kind, kind.id === 'hair' ? Number(location.hash[5]) || 0 : -1);
+  if (location.hash[6]) { furColor = COLORS[Number(location.hash[6])]; showBreed(); } // #hair25 = färgad päls också
 }
 if (location.hash === '#say') { // testläge: visa pratbubblan
   startScreen.hidden = true;
