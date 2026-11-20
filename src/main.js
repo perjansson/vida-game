@@ -34,6 +34,7 @@ const TEXTS = {
     'Försök igen': 'Yritä uudelleen', 'Garderoben': 'Vaatekaappi',
     'Bra sprunget!': 'Hyvin juostu!', 'Samla ben och köp kläder och leksaker': 'Kerää luita ja osta vaatteita ja leluja',
     'Börja om från bana 1': 'Aloita alusta radalta 1', 'Säker? Tryck igen för att börja om': 'Varmasti? Paina uudelleen',
+    'Promenad': 'Kävely', 'Gå på promenad som belöning': 'Palkinnoksi pääset kävelylle',
     'Köp': 'Osta', 'spring fler banor!': 'juokse lisää ratoja!', 'Boll': 'Pallo', 'Leka': 'Leiki', 'Nu behöver hunden lite omsorg': 'Nyt koira tarvitsee hoivaa',
     'Hunden är glad igen!': 'Koira on taas iloinen!',
     'Mat': 'Ruoka', 'Vatten': 'Vesi', 'Klappa': 'Silitä',
@@ -69,6 +70,7 @@ const TEXTS = {
     'Försök igen': 'Try again', 'Garderoben': 'Wardrobe',
     'Bra sprunget!': 'Well run!', 'Samla ben och köp kläder och leksaker': 'Collect bones and buy clothes and toys',
     'Börja om från bana 1': 'Start over from level 1', 'Säker? Tryck igen för att börja om': 'Sure? Tap again to start over',
+    'Promenad': 'Walk', 'Gå på promenad som belöning': 'Go for a walk as a reward',
     'Köp': 'Buy', 'spring fler banor!': 'run more levels!', 'Boll': 'Ball', 'Nalle': 'Teddy', 'Leka': 'Play', 'Nu behöver hunden lite omsorg': 'Now the dog needs some care',
     'Hunden är glad igen!': 'The dog is happy again!',
     'Mat': 'Food', 'Vatten': 'Water', 'Klappa': 'Pet',
@@ -826,6 +828,8 @@ const THEMES = [
   { sky: 0xcfe8ff, ground: 0xeef6ff, track: 0xb9d6f2, bush: 0x9ed8ff, obstacle: 0x2a9dff }, // snön
   { sky: NIGHT, ground: 0x3b2a6b, track: 0x5b3bb0, bush: 0xffd93d, obstacle: 0xff5fa2 }, // rymden
 ];
+let walking = false; // sant när man är ute på promenad i stället för att springa en bana
+const WALK_THEME = { sky: 0xffc7dd, ground: 0x8ad66f, track: 0xead2a4, bush: 0xff7fb6, obstacle: 0x8a5a3a }; // rosa kvällshimmel
 let mode = 'dress'; // 'dress' = garderoben, 'run' = springa, 'lost' = snubblat, 'care' = ta hand om hunden
 let level = 1;
 try { level = Math.max(1, Number(localStorage.getItem('level')) || 1); } catch {}
@@ -860,6 +864,13 @@ for (let i = 0; i < 16; i++) {
   const bush = fluff(0.3 + (i % 3) * 0.12, bushMat, 0, 0.25, i % 2 ? 3.5 : -3.5, runWorld);
   bush.castShadow = false;
   roadside.push(bush);
+}
+for (let i = 0; i < 8; i++) { // träd längre ut, så att det känns som en park
+  const tree = group(runWorld, 0, 0, i % 2 ? 5.6 : -5.6);
+  part(new THREE.CylinderGeometry(0.16, 0.22, 1.6, 8), new THREE.MeshStandardMaterial({ color: 0x7a4a2a, roughness: 1 }), 0, 0.8, 0, tree);
+  fluff(0.8, bushMat, 0, 2.1, 0, tree);
+  fluff(0.55, bushMat, 0.2, 2.9, 0.1, tree);
+  roadside.push(tree);
 }
 const obstacleGroup = group(runWorld);
 const goal = group(runWorld);
@@ -942,6 +953,7 @@ function addBone(x, y, z) {
 // Farten ökar hela tiden under banan: ju längre man har sprungit, desto fortare går det
 let startSpeed = 5;
 function speedAt(x) {
+  if (walking) return 3.4; // promenadtakt
   return Math.min(startSpeed + x * 0.02, startSpeed * 1.6, 12.5);
 }
 
@@ -952,10 +964,19 @@ function addObstacle(kind, x, z) {
 }
 
 function startRun() {
+  walking = false;
+  beginRun();
+}
+function startWalk() {
+  walking = true;
+  beginRun();
+  SOUND.happy();
+}
+function beginRun() {
   stopTrying();
   showWardrobe();
   mode = 'run';
-  const theme = THEMES[(level - 1) % THEMES.length];
+  const theme = walking ? WALK_THEME : THEMES[(level - 1) % THEMES.length];
   scene.background.setHex(theme.sky);
   runGroundMat.color.setHex(theme.ground);
   trackMat.color.setHex(theme.track);
@@ -971,7 +992,7 @@ function startRun() {
   // Varje bana är längre, snabbare och har tätare mellan hindren än den förra
   startSpeed = Math.min(4.6 + level * 0.5, 10.5);
   runSpeed = startSpeed;
-  const count = Math.min(8 + level * 4, 60); // antal hinder
+  const count = walking ? 0 : Math.min(8 + level * 4, 60); // antal hinder (inga alls på promenaden)
   const shortest = Math.max(0.9, 1.35 - level * 0.05); // kortaste tiden mellan två hinder, i sekunder
   const extra = Math.max(0.3, 0.9 - level * 0.06); // hur mycket längre det kan vara ibland
   const kinds = OBSTACLES.filter((kind) => level >= kind.fromLevel);
@@ -999,6 +1020,11 @@ function startRun() {
       }
     });
     addBone((before + x) / 2, 0.5, lanes[0] * LANE); // ben på vägen dit
+  }
+  if (walking) {
+    // På promenaden ligger benen i en slingrande rad, och några hänger högt så att man får hoppa
+    let n = 0;
+    for (x = 7; x < 86; x += 2.6) addBone(x, n++ % 6 === 5 ? 1.7 : 0.5, Math.round(Math.sin(x * 0.22)) * LANE);
   }
   goalX = x + 9;
   goal.position.x = goalX;
@@ -1081,7 +1107,7 @@ function updateRun(dt, time) {
   });
   dog.visible = safeTime <= 0 || Math.floor(safeTime * 12) % 2 === 0; // blinkar efter en krock
   progressBar.style.width = Math.min(100, (dog.position.x / goalX) * 100) + '%';
-  if (dog.position.x >= goalX) endRun(true);
+  if (dog.position.x >= goalX) walking ? endWalk() : endRun(true);
 }
 
 function goHome() {
@@ -1093,6 +1119,20 @@ function goHome() {
   dog.position.set(0, 0, 0);
   dog.rotation.set(0, -0.5, 0);
 }
+function endWalk() {
+  // Hem igen efter promenaden. Benen man hittade får man behålla.
+  bones += runBones;
+  try { localStorage.setItem('bones', bones); } catch {}
+  lastReward += runBones;
+  walked = true;
+  mode = 'care';
+  goHome();
+  speedY = TAP_SPEED;
+  burst('🦴');
+  SOUND.win();
+  showMode();
+}
+let walked = false; // om man redan har gått promenaden efter den här banan
 function endRun(won) {
   dog.visible = true;
   if (won) {
@@ -1105,6 +1145,7 @@ function endRun(won) {
     try { localStorage.setItem('level', level); } catch {}
     mode = 'care';
     caredFor.clear();
+    walked = false;
     careAction = null;
     fillBowls();
     goHome();
@@ -1150,16 +1191,41 @@ function fillBowls() {
 }
 fillBowls();
 
-const hand = group(careProps);
 const SKIN = mat(0xffcc4d); // gul som en emoji-hand
-fluff(1, SKIN, 0, 0, 0, hand).scale.set(0.17, 0.06, 0.15); // handflata
-for (let i = 0; i < 4; i++) {
-  const finger = part(new THREE.CapsuleGeometry(0.035, 0.14, 4, 8), SKIN, 0.2, -0.02, -0.105 + i * 0.07, hand);
-  finger.rotation.z = Math.PI / 2 + 0.25; // fingrarna pekar framåt och lite nedåt
+function makeHand(parent) {
+  const hand = group(parent);
+  fluff(1, SKIN, 0, 0, 0, hand).scale.set(0.17, 0.06, 0.15); // handflata
+  for (let i = 0; i < 4; i++) {
+    const finger = part(new THREE.CapsuleGeometry(0.035, 0.14, 4, 8), SKIN, 0.2, -0.02, -0.105 + i * 0.07, hand);
+    finger.rotation.z = Math.PI / 2 + 0.25; // fingrarna pekar framåt och lite nedåt
+  }
+  part(new THREE.CapsuleGeometry(0.035, 0.1, 4, 8), SKIN, 0.05, -0.01, 0.17, hand).rotation.x = Math.PI / 2 - 0.5; // tumme
+  part(new THREE.CylinderGeometry(0.09, 0.1, 0.3, 12), mat(0x2a9dff), -0.27, 0.03, 0, hand).rotation.z = Math.PI / 2 - 0.2; // ärm
+  hand.visible = false;
+  return hand;
 }
-part(new THREE.CapsuleGeometry(0.035, 0.1, 4, 8), SKIN, 0.05, -0.01, 0.17, hand).rotation.x = Math.PI / 2 - 0.5; // tumme
-part(new THREE.CylinderGeometry(0.09, 0.1, 0.3, 12), mat(0x2a9dff), -0.27, 0.03, 0, hand).rotation.z = Math.PI / 2 - 0.2; // ärm
-hand.visible = false;
+const hand = makeHand(careProps);
+
+// Promenaden: en hand som håller i ett koppel
+const walkHand = makeHand(scene);
+walkHand.scale.setScalar(1.15);
+const leash = part(new THREE.CylinderGeometry(0.02, 0.02, 1, 6), mat(0xe63946), 0, 0, 0, scene);
+leash.visible = false;
+const UP = new THREE.Vector3(0, 1, 0);
+const leashFrom = new THREE.Vector3();
+const leashTo = new THREE.Vector3();
+function updateLeash() {
+  walkHand.visible = leash.visible = mode === 'run' && walking;
+  if (!leash.visible) return;
+  leashFrom.set(dog.position.x + 0.4 * breed.size, dog.position.y + (0.92 + upperBase) * breed.size, dog.position.z); // halsen
+  leashTo.set(dog.position.x - 1.5, 2.2, dog.position.z * 0.6 + 0.9); // handen, snett bakom hunden
+  walkHand.position.copy(leashTo);
+  walkHand.rotation.z = -0.5;
+  const along = leashFrom.clone().sub(leashTo);
+  leash.position.copy(leashTo).addScaledVector(along, 0.5);
+  leash.scale.y = along.length();
+  leash.quaternion.setFromUnitVectors(UP, along.normalize());
+}
 
 function updateCare(dt, time) {
   careProps.rotation.y = dog.rotation.y;
@@ -1230,7 +1296,8 @@ function dogName() {
 }
 function showHud() {
   el('hearts').textContent = '❤️'.repeat(hearts) + '🤍'.repeat(3 - hearts);
-  el('levelName').textContent = t('Bana {n}').replace('{n}', level);
+  el('levelName').textContent = walking ? '🦮 ' + t('Promenad') : t('Bana {n}').replace('{n}', level);
+  if (walking) el('hearts').textContent = '';
   el('runBones').textContent = '🦴 ' + runBones;
 }
 function showMode() {
@@ -1269,6 +1336,13 @@ function showMode() {
     });
     careButtons.appendChild(b);
   }
+  // Promenaden är belöningen: den låses upp när hunden har fått mat, vatten och klappar
+  const walkButton = document.createElement('button');
+  walkButton.className = 'chip' + (walked ? ' chosen' : allDone ? ' buy' : ' locked');
+  walkButton.textContent = (allDone ? '🦮 ' : '🔒 ') + t('Promenad') + (walked ? ' ✓' : '');
+  walkButton.disabled = !allDone || walked || !!careAction;
+  walkButton.addEventListener('click', startWalk);
+  careButtons.appendChild(walkButton);
   el('nextLevel').textContent = '▶ ' + t('Bana {n}').replace('{n}', level);
   el('nextLevel').disabled = !allDone;
   el('careHome').textContent = '👗 ' + t('Garderoben');
@@ -1297,7 +1371,7 @@ if (test) {
   showWardrobe();
 }
 
-if (location.hash === '#run' || location.hash.startsWith('#care')) {
+if (['#run', '#walk'].includes(location.hash) || location.hash.startsWith('#care')) {
   startScreen.hidden = true;
   startRun();
   if (location.hash === '#run') { // visa en av varje sorts hinder på rad
@@ -1306,6 +1380,7 @@ if (location.hash === '#run' || location.hash.startsWith('#care')) {
     startSpeed = 0.01;
     OBSTACLES.forEach((kind, i) => addObstacle({ ...kind, roll: 0 }, 3 + i * 2.2, ((i % 3) - 1) * LANE));
   }
+  if (location.hash === '#walk') startWalk();
   if (location.hash.startsWith('#care')) {
     endRun(true);
     breedIndex = Number(location.hash[6] || 0) % BREEDS.length; // #care12 = sak 1, hund 2
@@ -1431,6 +1506,7 @@ renderer.setAnimationLoop(() => {
     camera.position.set(caring ? 0.4 : 0, cameraY + 1 - low, dressZ + (caring ? 1.3 : 0));
     camera.lookAt(caring ? 0.4 : 0, cameraY - low, 0);
   }
+  updateLeash();
   toyGroup.visible = mode === 'dress' || mode === 'care';
   toyGroup.rotation.y = dog.rotation.y;
   stars.position.x = camera.position.x;
