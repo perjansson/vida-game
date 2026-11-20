@@ -1731,7 +1731,11 @@ function speedAt(x) {
 function addObstacle(kind, x, z) {
   const g = group(obstacleGroup, x, 0, z);
   const animate = kind.build(g);
-  obstacles.push({ ...kind, x, z, group: g, animate, hit: false });
+  // Det man springer under (tunneln, fågeln) växer så att även de största hundarna får plats
+  const standing = (1.3 + upperBase) * breed.size; // så hög är hunden när den står
+  const grow = kind.bottom ? Math.max(1, (standing + 0.3) / kind.bottom) : 1;
+  g.scale.setScalar(grow);
+  obstacles.push({ ...kind, half: kind.half * grow, bottom: kind.bottom && kind.bottom * grow, x, z, group: g, animate, hit: false });
 }
 
 function startRun() {
@@ -2486,7 +2490,7 @@ if (test) {
   showWardrobe();
 }
 
-if (['#run', '#walk', '#agility'].includes(location.hash) || location.hash.startsWith('#care')) {
+if (['#run', '#walk'].includes(location.hash) || location.hash.startsWith('#agility') || location.hash.startsWith('#care')) {
   startScreen.hidden = true;
   startRun();
   if (location.hash === '#run') { // visa en av varje sorts hinder på rad
@@ -2496,7 +2500,7 @@ if (['#run', '#walk', '#agility'].includes(location.hash) || location.hash.start
     OBSTACLES.forEach((kind, i) => addObstacle({ ...kind, roll: 0 }, 3 + i * 2.2, ((i % 3) - 1) * LANE));
   }
   if (location.hash === '#walk') startWalk();
-  if (location.hash === '#agility') { startAgility(); obstacleGroup.clear(); obstacles = []; AGILITY_OBSTACLES.forEach((kind, i) => addObstacle(kind, 5 + i * 3.2, ((i % 3) - 1) * LANE)); }
+  if (location.hash.startsWith('#agility')) { breedIndex = myBreed = Number(location.hash[8] || 0); showBreed(); startAgility(); obstacleGroup.clear(); obstacles = []; AGILITY_OBSTACLES.forEach((kind, i) => addObstacle(kind, 5 + i * 3.2, ((i % 3) - 1) * LANE)); dog.position.x = 6.6; lane = 0; }
   if (location.hash.startsWith('#care')) {
     endRun(true);
     breedIndex = Number(location.hash[6] || 0) % BREEDS.length; // #care12 = sak 1, hund 2
