@@ -72,6 +72,7 @@ const TEXTS = {
     'Hälsa': 'Tervehdi', 'Nästa hund': 'Seuraava koira', 'Gå hem': 'Mene kotiin', 'Hej! Jag heter {n}': 'Hei! Olen {n}',
     'Vi är kompisar nu!': 'Nyt ollaan kavereita!', 'Vill du leka?': 'Leikitäänkö?', 'Hej kompis!': 'Hei kaveri!', 'Voff voff!': 'Hau hau!',
     'Simma': 'Ui', 'Tryck på pilarna för att styra hunden': 'Ohjaa koiraa nuolilla', 'Vad skönt det var!': 'Olipa ihanaa!', 'Simmare': 'Uimari', 'Simma i havet': 'Ui meressä',
+    'Ge godis': 'Anna herkku', 'Mums! Tack!': 'Nam! Kiitos!', 'Så gott!': 'Tosi hyvää!', 'Du är snäll!': 'Olet kiltti!', 'Varsågod!': 'Ole hyvä!', 'Godisgivare': 'Herkkujen antaja', 'Ge godis till tre hundar': 'Anna herkku kolmelle koiralle',
     'Jag tog den!': 'Sain sen!', 'Hundkompis': 'Koirakaveri', 'Hälsa på fem hundar i parken': 'Tervehdi viittä koiraa puistossa',
   },
   en: {
@@ -132,6 +133,7 @@ const TEXTS = {
     'Hälsa': 'Say hi', 'Nästa hund': 'Next dog', 'Gå hem': 'Go home', 'Hej! Jag heter {n}': "Hi! I'm {n}",
     'Vi är kompisar nu!': 'We are friends now!', 'Vill du leka?': 'Want to play?', 'Hej kompis!': 'Hi friend!', 'Voff voff!': 'Woof woof!',
     'Simma': 'Swim', 'Tryck på pilarna för att styra hunden': 'Tap the arrows to steer the dog', 'Vad skönt det var!': 'That was lovely!', 'Simmare': 'Swimmer', 'Simma i havet': 'Swim in the sea',
+    'Ge godis': 'Give a treat', 'Mums! Tack!': 'Yum! Thanks!', 'Så gott!': 'So tasty!', 'Du är snäll!': 'You are kind!', 'Varsågod!': 'Here you go!', 'Godisgivare': 'Treat giver', 'Ge godis till tre hundar': 'Give treats to three dogs',
     'Jag tog den!': 'I got it!', 'Hundkompis': 'Dog friend', 'Hälsa på fem hundar i parken': 'Say hi to five dogs in the park',
   },
 };
@@ -944,6 +946,7 @@ const MEDALS = [
   ['😴', 'Sjusovare', 'Låt hunden sova i korgen', () => stats.sleeps > 0],
   ['🏆', 'Mästare', 'Kom till bana 6', () => level >= 6],
   ['🏊', 'Simmare', 'Simma i havet', () => stats.swims > 0],
+  ['🍪', 'Godisgivare', 'Ge godis till tre hundar', () => stats.treats >= 3],
   ['💗', 'Hundkompis', 'Hälsa på fem hundar i parken', () => stats.friends >= 5],
 ];
 const medals = new Set(); // namnen på medaljerna man har fått
@@ -1967,6 +1970,52 @@ part(new THREE.BoxGeometry(1.5, 0.08, 0.45), WOOD, 0, 0.45, 0, bench);
 part(new THREE.BoxGeometry(1.5, 0.4, 0.07), WOOD, 0, 0.8, -0.2, bench);
 for (const x of [-0.6, 0.6]) part(new THREE.BoxGeometry(0.08, 0.45, 0.4), TRUNK, x, 0.22, 0, bench);
 
+// Djuren i parken: ankor i en damm, en ekorre i trädet och en liten fågel
+const pond = part(new THREE.CylinderGeometry(1, 1, 0.03, 28), WATER, 0.1, 0.02, 1.75, parkGroup);
+pond.scale.set(1.25, 1, 0.55);
+pond.castShadow = false;
+function makeDuck(color) {
+  const duck = group(parkGroup);
+  const m = mat(color);
+  fluff(0.16, m, 0, 0.12, 0, duck).scale.set(0.2, 0.13, 0.14);
+  fluff(0.09, m, 0.14, 0.26, 0, duck);
+  part(new THREE.ConeGeometry(0.04, 0.1, 8), mat(0xff9f1c), 0.25, 0.25, 0, duck).rotation.z = -Math.PI / 2;
+  fluff(0.018, BLACK, 0.19, 0.3, 0.06, duck);
+  fluff(0.018, BLACK, 0.19, 0.3, -0.06, duck);
+  return duck;
+}
+const ducks = [makeDuck(0xffffff), makeDuck(0xffd93d), makeDuck(0xffd93d)];
+ducks[1].scale.setScalar(0.6); // två små ankungar följer efter
+ducks[2].scale.setScalar(0.6);
+const squirrel = group(parkGroup);
+const SQUIRREL = mat(0xf07f2e);
+fluff(0.11, SQUIRREL, 0, 0, 0, squirrel).scale.set(0.09, 0.15, 0.09);
+fluff(0.075, SQUIRREL, 0, 0.17, 0.03, squirrel);
+fluff(0.1, SQUIRREL, 0, -0.12, 0.13, squirrel).scale.set(0.07, 0.16, 0.08); // yvig svans
+for (const x of [-0.04, 0.04]) {
+  part(new THREE.ConeGeometry(0.02, 0.06, 6), SQUIRREL, x, 0.26, 0.03, squirrel);
+  fluff(0.014, BLACK, x * 0.8, 0.19, 0.095, squirrel);
+}
+squirrel.scale.setScalar(2.4);
+const parkBird = group(parkGroup);
+fluff(0.1, RED, 0, 0.12, 0, parkBird).scale.set(0.12, 0.1, 0.09);
+fluff(0.06, RED, 0.09, 0.22, 0, parkBird);
+part(new THREE.ConeGeometry(0.025, 0.07, 6), mat(0xffd93d), 0.16, 0.21, 0, parkBird).rotation.z = -Math.PI / 2;
+fluff(0.012, BLACK, 0.12, 0.25, 0.04, parkBird);
+function updateParkAnimals(time) {
+  ducks.forEach((duck, i) => {
+    const a = time * 0.5 - i * 0.55; // ankorna simmar runt i dammen på rad
+    duck.position.set(0.1 + Math.cos(a) * 0.85, 0.02 + Math.sin(time * 3 + i) * 0.01, 1.75 + Math.sin(a) * 0.3);
+    duck.rotation.y = a + Math.PI / 2 + Math.PI;
+  });
+  // Ekorren kilar upp och ner på stammen på det bortre trädet
+  squirrel.position.set(0.2, 0.75 + (Math.sin(time * 0.9) * 0.5 + 0.5) * 0.75, -5.5 + 0.26);
+  squirrel.rotation.z = Math.cos(time * 0.9) < 0 ? Math.PI : 0; // huvudet först åt det håll den springer
+  // Fågeln hoppar omkring i gräset vid bänken
+  parkBird.position.set(-2.0 + Math.sin(time * 0.4) * 0.5, Math.abs(Math.sin(time * 5)) * 0.07, -1.2);
+  parkBird.rotation.y = Math.cos(time * 0.4) > 0 ? 0 : Math.PI;
+}
+
 let friend = null; // den andra hunden: { dog, tail, name, breed, greeted, time }
 const friendBubble = el('friendBubble');
 let friendBubbleTime = 0;
@@ -2055,7 +2104,7 @@ function startPlay() {
   if (!friend || !friend.greeted || play) return;
   SOUND.Leka();
   const reach = Math.min(2.2, 1.1 + camera.aspect); // på smal skärm kastas bollen inte lika långt åt sidan
-  play = { phase: 'fly', time: 0, x: (Math.random() * 2 - 1) * reach, z: 0.5, friendSpeed: 2.3 + Math.random() * 1.5 };
+  play = { phase: 'fly', time: 0, x: (Math.random() * 2 - 1) * reach, z: 0.3, friendSpeed: 2.3 + Math.random() * 1.5 };
   playBall.visible = true;
   showPark();
 }
@@ -2112,6 +2161,22 @@ function updatePlay(dt, time) {
     }
   }
 }
+// Hundgodis: kostar hundben, och kompisen blir jätteglad
+const TREAT_PRICE = 2;
+function giveTreat() {
+  if (!friend || play || bones < TREAT_PRICE || friend.dog.position.x > FRIEND_SPOT + 0.01) return;
+  bones -= TREAT_PRICE;
+  try { localStorage.setItem('bones', bones); } catch {}
+  stats.treats = (stats.treats || 0) + 1;
+  friend.hop = 1;
+  friend.treat = 1.2; // så länge tuggar hunden
+  SOUND.Mat();
+  burst('🍪');
+  friendSays(t(['Mums! Tack!', 'Så gott!', 'Du är snäll!'][Math.floor(Math.random() * 3)]));
+  say('Varsågod!');
+  checkMedals();
+  showPark();
+}
 function showPark() {
   el('parkButton').textContent = '🌳 ' + t('Hundparken');
   if (!friend) return;
@@ -2126,10 +2191,14 @@ function showPark() {
   el('playButton').textContent = '🎾 ' + t('Leka');
   el('playButton').disabled = !!play;
   el('nextFriend').disabled = !!play;
+  el('treatButton').textContent = `🍪 ${t('Ge godis')} 🦴${TREAT_PRICE}`;
+  el('treatButton').disabled = !here || !!play || bones < TREAT_PRICE;
+  el('parkBones').textContent = '🦴 ' + bones;
   el('nextFriend').textContent = '🐶 ' + t('Nästa hund');
   el('parkHome').textContent = '🏠 ' + t('Gå hem');
 }
 function updatePark(dt, time) {
+  if (mode === 'park') updateParkAnimals(time);
   friendBubbleTime -= dt;
   friendBubble.hidden = friendBubbleTime <= 0 || !friend;
   if (!friend) return;
@@ -2164,6 +2233,7 @@ el('parkButton').addEventListener('click', startPark);
 el('swimButton').addEventListener('click', startSwim);
 el('greet').addEventListener('click', greet);
 el('playButton').addEventListener('click', startPlay);
+el('treatButton').addEventListener('click', giveTreat);
 el('nextFriend').addEventListener('click', () => { SOUND.pop(); newFriend(); });
 el('parkHome').addEventListener('click', leavePark);
 el('retry').addEventListener('click', startRun);
