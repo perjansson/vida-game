@@ -48,6 +48,10 @@ const TEXTS = {
     'Hemmafixare': 'Kodinlaittaja', 'Ha tre saker i trädgården': 'Laita puutarhaan kolme tavaraa',
     'Sjusovare': 'Unikeko', 'Låt hunden sova i korgen': 'Anna koiran nukkua korissa',
     'Mästare': 'Mestari', 'Kom till bana 6': 'Pääse radalle 6',
+    'Voff!': 'Hau!', 'Hej!': 'Hei!', 'Ska vi springa?': 'Mennäänkö juoksemaan?', 'Jag gillar dig!': 'Tykkään sinusta!',
+    'Vad fin jag blir!': 'Olenpa hieno!', 'Jag är hungrig!': 'Minulla on nälkä!', 'Mums!': 'Nam!', 'Ahh, gott!': 'Ahh, hyvää!',
+    'Mer klappar!': 'Lisää silityksiä!', 'Vad kul!': 'Onpa hauskaa!', 'Tack!': 'Kiitos!', 'Vad skönt!': 'Olipa ihanaa!',
+    'Titta på mig!': 'Katso minua!',
     'Sova': 'Nuku', 'Promenad': 'Kävely', 'Gå på promenad som belöning': 'Palkinnoksi pääset kävelylle',
     'Köp': 'Osta', 'spring fler banor!': 'juokse lisää ratoja!', 'Boll': 'Pallo', 'Leka': 'Leiki', 'Nu behöver hunden lite omsorg': 'Nyt koira tarvitsee hoivaa',
     'Hunden är glad igen!': 'Koira on taas iloinen!',
@@ -98,6 +102,10 @@ const TEXTS = {
     'Hemmafixare': 'Home maker', 'Ha tre saker i trädgården': 'Have three things in the garden',
     'Sjusovare': 'Sleepyhead', 'Låt hunden sova i korgen': 'Let the dog sleep in the basket',
     'Mästare': 'Champion', 'Kom till bana 6': 'Reach level 6',
+    'Voff!': 'Woof!', 'Hej!': 'Hi!', 'Ska vi springa?': 'Shall we run?', 'Jag gillar dig!': 'I like you!',
+    'Vad fin jag blir!': 'I look so nice!', 'Jag är hungrig!': "I'm hungry!", 'Mums!': 'Yum!', 'Ahh, gott!': 'Ahh, tasty!',
+    'Mer klappar!': 'More pets!', 'Vad kul!': 'So fun!', 'Tack!': 'Thanks!', 'Vad skönt!': 'That was nice!',
+    'Titta på mig!': 'Look at me!',
     'Sova': 'Sleep', 'Promenad': 'Walk', 'Gå på promenad som belöning': 'Go for a walk as a reward',
     'Köp': 'Buy', 'spring fler banor!': 'run more levels!', 'Boll': 'Ball', 'Nalle': 'Teddy', 'Leka': 'Play', 'Nu behöver hunden lite omsorg': 'Now the dog needs some care',
     'Hunden är glad igen!': 'The dog is happy again!',
@@ -575,6 +583,7 @@ function pay(name) {
   document.getElementById('boneCount').textContent = '🦴 ' + bones;
   SOUND.happy();
   speedY = TAP_SPEED;
+  say('Tack!');
   checkMedals();
 }
 function saveOutfit() {
@@ -669,6 +678,29 @@ const WHITE = mat(0xffffff);
 for (let x = -9; x <= 9; x += 0.5) part(new THREE.BoxGeometry(0.16, 0.8, 0.05), WHITE, x, 0.4, -2.9, homeGroup); // staket
 for (const y of [0.25, 0.58]) part(new THREE.BoxGeometry(18.5, 0.08, 0.04), WHITE, 0, y, -2.93, homeGroup);
 
+// Fjärilar som flyger runt i trädgården. De är gratis och finns alltid där.
+const butterflies = [[0xff8fc7, -1.3, -1.2], [0xffd93d, 1.2, -0.9], [0x2a9dff, 0.1, -2.1]].map(([color, x, z], i) => {
+  const body = group(homeGroup);
+  body.scale.setScalar(1.6);
+  part(new THREE.CapsuleGeometry(0.025, 0.12, 4, 6), BLACK, 0, 0, 0, body).rotation.z = Math.PI / 2;
+  const wings = [-1, 1].map((side) => {
+    const wing = group(body);
+    fluff(1, mat(color), 0.02, 0, side * 0.13, wing).scale.set(0.1, 0.012, 0.13);
+    fluff(1, mat(color), -0.07, 0, side * 0.09, wing).scale.set(0.07, 0.012, 0.09);
+    return [wing, side];
+  });
+  return { body, wings, x, z, offset: i * 2.1 };
+});
+function updateButterflies(time) {
+  for (const b of butterflies) {
+    const a = time * 0.7 + b.offset;
+    // Flyger i mjuka åttor och guppar upp och ner
+    b.body.position.set(b.x + Math.sin(a) * 0.9, 1.3 + Math.sin(a * 2.3) * 0.35, b.z + Math.sin(a * 2) * 0.45);
+    b.body.rotation.y = -Math.atan2(Math.cos(a * 2) * 0.9, Math.cos(a) * 0.9); // nosen åt det håll den flyger
+    for (const [wing, side] of b.wings) wing.rotation.x = side * (0.3 + Math.sin(time * 16 + b.offset) * 0.8);
+  }
+}
+
 // Dynan i korgen kan byta färg
 let bedColor = 0xff8fc7;
 try { bedColor = Number(localStorage.getItem('bedColor')) || bedColor; } catch {}
@@ -747,6 +779,7 @@ function startTrick(name) {
   if (trick || sleep) return;
   trick = { name, time: 0, length: TRICKS[name], baseY: dog.rotation.y };
   SOUND.bark();
+  say('Titta på mig!');
   if (name === 'Rulla' || name === 'Volt') speedY = 6.3; // de här tricken görs i ett högt hopp
 }
 function updateTrick(dt) {
@@ -822,6 +855,7 @@ function updateSleep(dt, time) {
     stats.sleeps += 1;
     checkMedals();
     SOUND.bark();
+    say('Vad skönt!');
     speedY = TAP_SPEED; // pigg och glad igen
     if (mode === 'care') showMode();
     else showWardrobe();
@@ -886,6 +920,30 @@ medalButton.addEventListener('click', () => {
 });
 document.getElementById('medalClose').addEventListener('click', () => (document.getElementById('medals').hidden = true));
 refreshers.push(showMedals);
+
+// ---------- Pratbubbla ----------
+// Hunden säger korta saker i en bubbla ovanför huvudet.
+const bubble = document.getElementById('bubble');
+const bubblePoint = new THREE.Vector3();
+let bubbleTime = 0; // sekunder som bubblan ska synas till
+function say(text) {
+  bubble.textContent = t(text);
+  bubbleTime = 2.6;
+}
+function sayOneOf(...texts) {
+  say(texts[Math.floor(Math.random() * texts.length)]);
+}
+function updateBubble(dt) {
+  bubbleTime -= dt;
+  bubble.hidden = bubbleTime <= 0 || (mode !== 'dress' && mode !== 'care');
+  if (bubble.hidden) return;
+  // Räkna ut var på skärmen hundens huvud är, och lägg bubblan strax ovanför
+  head.getWorldPosition(bubblePoint);
+  bubblePoint.y += 0.75 * breed.size;
+  bubblePoint.project(camera);
+  bubble.style.left = Math.min(Math.max(((bubblePoint.x + 1) / 2) * window.innerWidth, 90), window.innerWidth - 90) + 'px';
+  bubble.style.top = Math.max(((1 - bubblePoint.y) / 2) * window.innerHeight, 60) + 'px';
+}
 
 // ---------- Garderoben ----------
 // Flikarna längst ner väljer vad man klär på. Ovanför visas alla plagg och färger.
@@ -1003,7 +1061,7 @@ function showWardrobe() {
       const price = PRICE[name];
       const trying = tryOn && tryOn.kind === kind && tryOn.i === i;
       if (have(name)) {
-        button(chipsBar, 'chip', t(name), i === kind.choice, () => { stopTrying(); wear(kind, i); saveOutfit(); });
+        button(chipsBar, 'chip', t(name), i === kind.choice, () => { stopTrying(); wear(kind, i); saveOutfit(); if (kind !== toyKind) say('Vad fin jag blir!'); });
       } else if (!trying) {
         // Första trycket: prova plagget på hunden
         button(chipsBar, 'chip locked', `🔒 ${t(name)} 🦴${price}`, false, () => { stopTrying(); wear(kind, i); tryOn = { kind, i }; });
@@ -1083,6 +1141,7 @@ renderer.domElement.addEventListener('pointerdown', (event) => {
   if (raycaster.ray.distanceToPoint(dogCenter) < BALL_RADIUS * HIT_MARGIN) {
     speedY = TAP_SPEED;
     SOUND.bark();
+    sayOneOf('Voff!', 'Hej!', 'Ska vi springa?', 'Jag gillar dig!');
   }
   dragX = event.clientX;
 });
@@ -1516,6 +1575,7 @@ function endRun(won) {
   }
   showMode();
   if (won) checkMedals();
+  if (won) say('Jag är hungrig!');
 }
 
 // Ta hand om hunden efter loppet
@@ -1630,6 +1690,7 @@ function updateCare(dt, time) {
     caredFor.add(careAction.name);
     burst(careAction.emoji);
     SOUND.happy();
+    say({ Mat: 'Mums!', Vatten: 'Ahh, gott!', Klappa: 'Mer klappar!', Leka: 'Vad kul!' }[careAction.name]);
     careAction = null;
     speedY = Math.max(speedY, 3.5);
     showMode();
@@ -1795,6 +1856,11 @@ soundButton.addEventListener('click', () => {
   SOUND.pop();
 });
 
+if (location.hash === '#say') { // testläge: visa pratbubblan
+  startScreen.hidden = true;
+  say('Ska vi springa?');
+  bubbleTime = 99;
+}
 if (location.hash === '#medals') { // testläge: visa medaljlistan
   startScreen.hidden = true;
   medalButton.click();
@@ -1902,7 +1968,9 @@ renderer.setAnimationLoop(() => {
     camera.lookAt(caring ? 0.4 : 0, cameraY - low, 0);
   }
   updateLeash();
+  updateBubble(dt);
   homeGroup.visible = mode === 'dress' || mode === 'care';
+  if (homeGroup.visible) updateButterflies(time);
   toyGroup.visible = mode === 'dress' || mode === 'care';
   toyGroup.rotation.y = dog.rotation.y;
   stars.position.x = camera.position.x;
