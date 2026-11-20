@@ -19,10 +19,26 @@
         transform: rotate(-2deg);
         pointer-events: none; user-select: none;
       }
+      #buttons {
+        position: fixed; left: 0; right: 0; bottom: max(12px, env(safe-area-inset-bottom));
+        display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; padding: 0 10px;
+      }
+      #buttons button {
+        font-family: 'Luckiest Guy', system-ui, sans-serif;
+        font-size: clamp(16px, 4.2vw, 24px); letter-spacing: 1px;
+        min-width: 104px; min-height: 64px; padding: 8px 14px;
+        color: #2a1458; background: #ffd93d;
+        border: 3px solid #2a1458; border-radius: 18px;
+        box-shadow: 0 5px 0 #ff5fa2; cursor: pointer;
+        touch-action: manipulation; user-select: none; -webkit-tap-highlight-color: transparent;
+      }
+      #buttons button:active { transform: translateY(4px); box-shadow: 0 1px 0 #ff5fa2; }
+      #buttons small { display: block; font-size: 0.7em; color: #7b3fd1; margin-top: 2px; }
     </style>
   </head>
   <body>
-    <div id="info">Tryck på hunden!</div>
+    <div id="info">Klä ut hunden!</div>
+    <div id="buttons"></div>
     <script type="module" src="/src/main.js"></script>
   </body>
 </html>

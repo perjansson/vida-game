@@ -119,6 +119,114 @@ dog.add(tail);
 fluff(0.09, FUR, -0.06, 0.1, 0, tail);
 fluff(0.15, FUR, -0.1, 0.26, 0, tail);
 
+// ---------- Kläder ----------
+// Varje sorts klädsel har en lista med val. Knapparna längst ner bläddrar mellan dem.
+function mat(color) {
+  return new THREE.MeshStandardMaterial({ color, roughness: 0.6 });
+}
+function bow(parent, color, x, y, z, size = 1) {
+  const m = mat(color);
+  for (const side of [-1, 1]) {
+    fluff(1, m, x, y, z + side * 0.1 * size, parent).scale.set(0.05 * size, 0.09 * size, 0.1 * size);
+  }
+  fluff(0.05 * size, m, x + 0.02, y, z, parent);
+}
+function glasses(parent, lensColor, frameColor) {
+  const lens = new THREE.CylinderGeometry(0.085, 0.085, 0.03, 20);
+  for (const z of [-0.13, 0.13]) {
+    part(lens, mat(lensColor), 0.34, 0.09, z, parent).rotation.z = Math.PI / 2;
+    part(new THREE.TorusGeometry(0.085, 0.015, 8, 20), mat(frameColor), 0.35, 0.09, z, parent).rotation.y = Math.PI / 2;
+  }
+  part(new THREE.BoxGeometry(0.02, 0.025, 0.1), mat(frameColor), 0.35, 0.1, 0, parent);
+}
+function collar(parent, color, thickness) {
+  const neck = new THREE.Group();
+  neck.position.set(0.42, 0.86, 0);
+  neck.rotation.z = -0.6;
+  parent.add(neck);
+  part(new THREE.TorusGeometry(0.2, thickness, 10, 24), mat(color), 0, 0, 0, neck).rotation.x = Math.PI / 2;
+  return neck;
+}
+
+const wardrobe = [
+  {
+    label: '🎩 Hatt',
+    parent: head,
+    options: [
+      ['Partyhatt', (g) => {
+        part(new THREE.ConeGeometry(0.17, 0.42, 16), mat(0xff5fa2), 0, 0.6, 0, g);
+        fluff(0.06, mat(0xffd93d), 0, 0.83, 0, g);
+      }],
+      ['Krona', (g) => {
+        const gold = new THREE.MeshStandardMaterial({ color: 0xffc933, roughness: 0.3, metalness: 0.5 });
+        part(new THREE.CylinderGeometry(0.17, 0.15, 0.12, 16), gold, 0, 0.47, 0, g);
+        for (let i = 0; i < 5; i++) {
+          const a = (i / 5) * Math.PI * 2;
+          part(new THREE.ConeGeometry(0.04, 0.12, 8), gold, Math.cos(a) * 0.14, 0.58, Math.sin(a) * 0.14, g);
+        }
+      }],
+      ['Rosett', (g) => bow(g, 0xff5fa2, 0.12, 0.42, 0, 1.2)],
+      ['Trollhatt', (g) => {
+        part(new THREE.CylinderGeometry(0.32, 0.32, 0.03, 20), mat(0x7b3fd1), 0, 0.42, 0, g);
+        part(new THREE.ConeGeometry(0.2, 0.5, 16), mat(0x7b3fd1), 0, 0.68, 0, g);
+        fluff(0.05, mat(0xffd93d), 0, 0.94, 0, g);
+      }],
+    ],
+  },
+  {
+    label: '🕶️ Glasögon',
+    parent: head,
+    options: [
+      ['Solbrillor', (g) => glasses(g, 0x111111, 0x111111)],
+      ['Rosa', (g) => glasses(g, 0xff9ecb, 0xff3d8b)],
+      ['Blå', (g) => glasses(g, 0x9ee7ff, 0x2a6bff)],
+    ],
+  },
+  {
+    label: '🎀 Hals',
+    parent: dog,
+    options: [
+      ['Halsband', (g) => {
+        const neck = collar(g, 0x2a9dff, 0.04);
+        fluff(0.06, mat(0xffc933), 0.24, -0.04, 0, neck);
+      }],
+      ['Halsduk', (g) => {
+        const neck = collar(g, 0xe63946, 0.075);
+        part(new THREE.BoxGeometry(0.06, 0.3, 0.12), mat(0xe63946), 0.24, -0.16, 0.06, neck);
+      }],
+      ['Fluga', (g) => {
+        collar(g, 0x222222, 0.03);
+        bow(g, 0x2ecc71, 0.66, 0.78, 0, 1);
+      }],
+    ],
+  },
+];
+
+const buttonBar = document.getElementById('buttons');
+for (const kind of wardrobe) {
+  kind.items = kind.options.map(([, build]) => {
+    const g = new THREE.Group();
+    build(g);
+    g.visible = false;
+    kind.parent.add(g);
+    return g;
+  });
+  kind.choice = -1; // -1 betyder ingenting på sig
+  const button = document.createElement('button');
+  const show = () => {
+    kind.items.forEach((g, i) => (g.visible = i === kind.choice));
+    const name = kind.choice < 0 ? 'ingen' : kind.options[kind.choice][0];
+    button.innerHTML = `${kind.label}<small>${name}</small>`;
+  };
+  button.addEventListener('click', () => {
+    kind.choice = kind.choice + 1 >= kind.items.length ? -1 : kind.choice + 1;
+    show();
+    speedY = Math.max(speedY, 2.5); // ett litet glädjeskutt
+  });
+  show();
+  buttonBar.appendChild(button);
+}
+
 dog.rotation.y = -0.5; // vrid hunden lite mot kameran
 scene.add(dog);
 
@@ -137,7 +245,18 @@ renderer.domElement.addEventListener('pointerdown', (event) => {
   if (raycaster.ray.distanceToPoint(dogCenter) < BALL_RADIUS * HIT_MARGIN) {
     speedY = TAP_SPEED;
   }
+  dragX = event.clientX;
 });
+
+// Dra med fingret eller musen för att snurra på hunden
+let dragX = null;
+window.addEventListener('pointermove', (event) => {
+  if (dragX === null) return;
+  dog.rotation.y += (event.clientX - dragX) * 0.012;
+  dragX = event.clientX;
+});
+window.addEventListener('pointerup', () => (dragX = null));
+window.addEventListener('pointercancel', () => (dragX = null));
 
 // Anpassa till skärmens storlek, både stående och liggande
 function resize() {
