@@ -46,10 +46,12 @@ for (let i = 0; i < 80; i++) {
   scene.add(star);
 }
 
-// Hunden, byggd av enkla former
-const FUR = new THREE.MeshStandardMaterial({ color: 0xc98a4b, roughness: 0.8 });
-const DARK = new THREE.MeshStandardMaterial({ color: 0x4a2f1a, roughness: 0.8 });
-const BLACK = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.4 });
+// Hunden: en fluffig maltipoo, byggd av många mjuka bollar
+const FUR = new THREE.MeshStandardMaterial({ color: 0xfbf1e0, roughness: 1 }); // gräddvit päls
+const EAR_FUR = new THREE.MeshStandardMaterial({ color: 0xecc9a0, roughness: 1 }); // aprikosfärgade öron
+const BLACK = new THREE.MeshStandardMaterial({ color: 0x1a1210, roughness: 0.3 });
+const PINK = new THREE.MeshStandardMaterial({ color: 0xff8fb0, roughness: 0.6 });
+const FLUFF = new THREE.SphereGeometry(1, 12, 10); // en pälstuss, ändrar storlek med scale
 
 function part(geometry, material, x, y, z, parent) {
   const mesh = new THREE.Mesh(geometry, material);
@@ -58,33 +60,64 @@ function part(geometry, material, x, y, z, parent) {
   parent.add(mesh);
   return mesh;
 }
+function fluff(size, material, x, y, z, parent) {
+  const mesh = part(FLUFF, material, x, y, z, parent);
+  mesh.scale.setScalar(size);
+  return mesh;
+}
 
 const dog = new THREE.Group(); // hundens fötter står på y = 0
-const body = part(new THREE.CapsuleGeometry(0.32, 0.6, 6, 12), FUR, 0, 0.6, 0, dog);
-body.rotation.z = Math.PI / 2; // lägg kroppen ner
-for (const x of [-0.32, 0.32]) {
-  for (const z of [-0.18, 0.18]) {
-    part(new THREE.CylinderGeometry(0.09, 0.09, 0.4, 10), FUR, x, 0.2, z, dog);
+
+// Kropp: rund och lurvig
+fluff(0.36, FUR, 0.18, 0.55, 0, dog);
+fluff(0.34, FUR, -0.2, 0.55, 0, dog);
+fluff(0.2, FUR, 0, 0.8, 0.12, dog);
+fluff(0.2, FUR, 0, 0.8, -0.12, dog);
+fluff(0.22, FUR, 0.38, 0.72, 0, dog); // bröst
+fluff(0.2, FUR, -0.4, 0.72, 0, dog);
+
+// Korta ben med fluffiga tassar
+for (const x of [-0.3, 0.3]) {
+  for (const z of [-0.17, 0.17]) {
+    fluff(0.13, FUR, x, 0.26, z, dog);
+    fluff(0.12, FUR, x + 0.03, 0.1, z, dog);
   }
 }
+
+// Huvud: stort och runt med lurvig lugg
 const head = new THREE.Group();
-head.position.set(0.62, 1.0, 0);
+head.position.set(0.55, 1.05, 0);
 dog.add(head);
-part(new THREE.SphereGeometry(0.3, 20, 16), FUR, 0, 0, 0, head);
-part(new THREE.SphereGeometry(0.16, 14, 12), FUR, 0.26, -0.08, 0, head); // nos
-part(new THREE.SphereGeometry(0.06, 10, 8), BLACK, 0.41, -0.04, 0, head); // nosspets
-part(new THREE.SphereGeometry(0.045, 10, 8), BLACK, 0.24, 0.1, 0.13, head); // ögon
-part(new THREE.SphereGeometry(0.045, 10, 8), BLACK, 0.24, 0.1, -0.13, head);
-const ears = [0.26, -0.26].map((z) => {
-  const ear = part(new THREE.SphereGeometry(0.14, 10, 8), DARK, -0.05, 0.05, z, head);
-  ear.scale.set(0.6, 1.4, 0.5);
+fluff(0.33, FUR, 0, 0, 0, head);
+fluff(0.17, FUR, 0.02, 0.27, 0, head); // lugg
+fluff(0.13, FUR, 0.1, 0.24, 0.13, head);
+fluff(0.13, FUR, 0.1, 0.24, -0.13, head);
+fluff(0.15, FUR, 0.24, -0.1, 0.09, head); // nosparti
+fluff(0.15, FUR, 0.24, -0.1, -0.09, head);
+fluff(0.14, FUR, 0.1, -0.2, 0.17, head); // kinder
+fluff(0.14, FUR, 0.1, -0.2, -0.17, head);
+fluff(0.065, BLACK, 0.38, -0.04, 0, head); // nos
+fluff(0.055, BLACK, 0.27, 0.07, 0.13, head); // knappögon
+fluff(0.055, BLACK, 0.27, 0.07, -0.13, head);
+const tongue = fluff(0.05, PINK, 0.33, -0.2, 0, head);
+tongue.scale.set(0.05, 0.07, 0.05);
+
+// Hängande, lurviga öron
+const ears = [0.3, -0.3].map((z) => {
+  const ear = new THREE.Group();
+  ear.position.set(-0.02, 0.12, z);
+  head.add(ear);
+  fluff(0.14, EAR_FUR, 0, -0.1, 0, ear).scale.set(0.13, 0.2, 0.1);
+  fluff(0.13, EAR_FUR, 0, -0.28, 0, ear);
   return ear;
 });
+
+// Svans: en liten pompom
 const tail = new THREE.Group();
-tail.position.set(-0.6, 0.75, 0);
+tail.position.set(-0.5, 0.8, 0);
 dog.add(tail);
-const tailMesh = part(new THREE.CylinderGeometry(0.05, 0.07, 0.45, 8), DARK, -0.1, 0.18, 0, tail);
-tailMesh.rotation.z = 0.5;
+fluff(0.09, FUR, -0.06, 0.1, 0, tail);
+fluff(0.15, FUR, -0.1, 0.26, 0, tail);
 
 dog.rotation.y = -0.5; // vrid hunden lite mot kameran
 scene.add(dog);
@@ -134,7 +167,8 @@ renderer.setAnimationLoop(() => {
   const t = clock.elapsedTime;
   const inAir = dog.position.y > 0.01;
   tail.rotation.x = Math.sin(t * (inAir ? 22 : 9)) * 0.6;
-  for (const ear of ears) ear.rotation.z = inAir ? -0.6 : Math.sin(t * 2) * 0.05;
+  ears[0].rotation.x = inAir ? -0.9 : Math.sin(t * 2) * 0.05; // öronen flaxar utåt i luften
+  ears[1].rotation.x = -ears[0].rotation.x;
 
   // Kameran följer mjukt med hunden uppåt
   const targetY = Math.max(1, dog.position.y + DOG_CENTER);
