@@ -35,6 +35,7 @@ const TEXTS = {
     'Bra sprunget!': 'Hyvin juostu!', 'Samla ben och köp hundar, kläder och leksaker': 'Kerää luita ja osta koiria, vaatteita ja leluja',
     'Golden': 'Kultainennoutaja', 'Terrier': 'Terrieri',
     'Börja om från bana 1': 'Aloita alusta radalta 1', 'Säker? Tryck igen för att börja om': 'Varmasti? Paina uudelleen',
+    'Svampar': 'Sienet', 'Lykta': 'Lyhty', 'Sandlåda': 'Hiekkalaatikko', 'Vimplar': 'Viirit', 'Regnbåge': 'Sateenkaari',
     'Matta': 'Matto', 'Blommor': 'Kukat', 'Ballonger': 'Ilmapallot', 'Korg': 'Kori', 'Träd': 'Puu', 'Hundkoja': 'Koirankoppi',
     'Lär': 'Opeta', 'Sitt': 'Istu', 'Snurra': 'Pyöri', 'Tass': 'Tassu', 'Dansa': 'Tanssi', 'Rulla': 'Kieri', 'Volt': 'Voltti',
     'Medaljer': 'Mitalit', 'Stäng': 'Sulje', 'Ny medalj': 'Uusi mitali',
@@ -89,6 +90,7 @@ const TEXTS = {
     'Bra sprunget!': 'Well run!', 'Samla ben och köp hundar, kläder och leksaker': 'Collect bones and buy dogs, clothes and toys',
     'Golden': 'Golden retriever',
     'Börja om från bana 1': 'Start over from level 1', 'Säker? Tryck igen för att börja om': 'Sure? Tap again to start over',
+    'Svampar': 'Mushrooms', 'Lykta': 'Lantern', 'Sandlåda': 'Sandbox', 'Vimplar': 'Bunting', 'Regnbåge': 'Rainbow',
     'Matta': 'Rug', 'Blommor': 'Flowers', 'Ballonger': 'Balloons', 'Korg': 'Basket', 'Träd': 'Tree', 'Hundkoja': 'Dog house',
     'Lär': 'Teach', 'Sitt': 'Sit', 'Snurra': 'Spin', 'Tass': 'Paw', 'Dansa': 'Dance', 'Rulla': 'Roll', 'Volt': 'Flip',
     'Medaljer': 'Medals', 'Stäng': 'Close', 'Ny medalj': 'New medal',
@@ -385,6 +387,7 @@ const PRICE = {
   Strumpor: 10, 'Stövlar': 20,
   'Ryggsäck': 20, Mantel: 30, Vingar: 40,
   Boll: 10, Frisbee: 15, Nalle: 30,
+  Svampar: 10, Lykta: 15, 'Sandlåda': 20, Vimplar: 20, 'Regnbåge': 50,
   Matta: 15, Blommor: 10, Ballonger: 20, Korg: 25, 'Träd': 30, Hundkoja: 60, // saker till hemmet
   Sitt: 5, Snurra: 10, Tass: 15, Dansa: 20, Rulla: 25, Volt: 40, // trick som hunden kan lära sig
   Mops: 30, Pudel: 40, Golden: 50, Chihuahua: 50, Dalmatiner: 60, Husky: 80, // hundar
@@ -691,7 +694,18 @@ const butterflies = [[0xff8fc7, -1.3, -1.2], [0xffd93d, 1.2, -0.9], [0x2a9dff, 0
   });
   return { body, wings, x, z, offset: i * 2.1 };
 });
+// Moln på himlen, också gratis. De driver sakta fram och tillbaka.
+const cloudMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+const clouds = [[-7, 8.5, 1], [2, 9.5, 0.8], [9, 8, 1.1]].map(([x, y, size]) => {
+  const cloud = group(homeGroup, x, y, -18);
+  cloud.scale.setScalar(size);
+  for (const [dx, dy, r] of [[-1, 0, 0.8], [0, 0.3, 1.1], [1.1, 0, 0.85], [0.2, -0.2, 0.9]]) {
+    fluff(r, cloudMat, dx, dy, 0, cloud).castShadow = false;
+  }
+  return { cloud, x };
+});
 function updateButterflies(time) {
+  for (const c of clouds) c.cloud.position.x = c.x + Math.sin(time * 0.08 + c.x) * 2;
   for (const b of butterflies) {
     const a = time * 0.7 + b.offset;
     // Flyger i mjuka åttor och guppar upp och ner
@@ -755,6 +769,46 @@ const HOME = [
     part(new THREE.CylinderGeometry(0.26, 0.26, 0.02, 20), BLACK, 0, 0.36, 0.5, house).rotation.x = Math.PI / 2; // dörr
     part(new THREE.BoxGeometry(0.52, 0.36, 0.02), BLACK, 0, 0.18, 0.5, house);
     fluff(0.06, mat(0xffd93d), 0, 0.72, 0.5, house); // liten skylt
+  }],
+  ['Svampar', (g) => {
+    for (const [x, z, size] of [[-1.55, -0.95, 1], [-1.3, -0.75, 0.7], [-1.75, -0.7, 0.8]]) {
+      const shroom = group(g, x, 0, z);
+      shroom.scale.setScalar(size);
+      part(new THREE.CylinderGeometry(0.05, 0.065, 0.18, 8), WHITE, 0, 0.09, 0, shroom);
+      dome(shroom, mat(0xe63946), 0.15, 0.16);
+      for (const [dx, dy, dz] of [[0.07, 0.27, 0.07], [-0.08, 0.25, 0.04], [0, 0.3, -0.06]]) fluff(0.03, WHITE, dx, dy, dz, shroom);
+    }
+  }],
+  ['Lykta', (g) => {
+    const lamp = group(g, -0.45, 0, -2.75);
+    part(new THREE.CylinderGeometry(0.035, 0.055, 1.5, 8), mat(0x2a1458), 0, 0.75, 0, lamp);
+    fluff(0.15, new THREE.MeshStandardMaterial({ color: 0xfff3b0, emissive: 0xffd93d }), 0, 1.6, 0, lamp);
+    part(new THREE.ConeGeometry(0.2, 0.14, 8), mat(0x2a1458), 0, 1.78, 0, lamp);
+  }],
+  ['Sandlåda', (g) => {
+    const box = group(g, 0.15, 0, -2.0);
+    part(new THREE.BoxGeometry(1.15, 0.16, 1.0), mat(0xb5793f), 0, 0.08, 0, box);
+    part(new THREE.BoxGeometry(1.0, 0.17, 0.85), mat(0xf2d28a), 0, 0.09, 0, box); // sand
+    fluff(1, mat(0xf2d28a), -0.2, 0.17, -0.1, box).scale.set(0.2, 0.12, 0.2); // sandhög
+    part(new THREE.CylinderGeometry(0.1, 0.075, 0.16, 10), mat(0xe63946), 0.28, 0.25, 0.15, box); // hink
+    part(new THREE.BoxGeometry(0.05, 0.03, 0.28), mat(0x2a9dff), -0.1, 0.19, 0.25, box); // spade
+  }],
+  ['Vimplar', (g) => {
+    const colors = [0xe63946, 0xffd93d, 0x2ecc71, 0x2a9dff, 0xff8fc7, 0x7b3fd1];
+    for (const x of [-3.4, 3.4]) part(new THREE.CylinderGeometry(0.04, 0.04, 1.5, 6), WHITE, x, 0.75, -2.95, g);
+    part(new THREE.BoxGeometry(6.8, 0.02, 0.02), WHITE, 0, 1.48, -2.95, g); // snöret
+    for (let i = 0; i < 17; i++) {
+      const flag = part(new THREE.ConeGeometry(0.13, 0.26, 3), mat(colors[i % colors.length]), -3.2 + i * 0.4, 1.34, -2.95, g);
+      flag.rotation.x = Math.PI; // spetsen nedåt
+      flag.scale.z = 0.15;
+    }
+  }],
+  ['Regnbåge', (g) => {
+    [0xe63946, 0xff9f1c, 0xffd93d, 0x2ecc71, 0x2a9dff, 0x7b3fd1].forEach((color, i) => {
+      const arc = new THREE.Mesh(new THREE.TorusGeometry(7 - i * 0.32, 0.17, 6, 40, Math.PI), new THREE.MeshBasicMaterial({ color }));
+      arc.position.set(-1, -0.3, -16);
+      g.add(arc);
+    });
   }],
 ];
 const homeItems = {};
