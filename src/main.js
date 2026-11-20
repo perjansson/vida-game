@@ -24,7 +24,10 @@ const TEXTS = {
     'Spela!': 'Pelaa!',
     '🐶 Hund': '🐶 Koira',
     'Pudel': 'Villakoira', 'Dalmatiner': 'Dalmatiankoira', 'Mops': 'Mopsi',
-    'Välj hund och byt kläder med knapparna': 'Valitse koira ja vaihda vaatteita napeilla',
+    'Välj hund och kläder längst ner': 'Valitse koira ja vaatteet alhaalta',
+    'Välj färg på kläderna': 'Valitse vaatteiden väri',
+    'Enfärgad': 'Yksivärinen', 'Keps': 'Lippis', 'Mössa': 'Pipo', 'Färgade': 'Värilliset', 'Runda': 'Pyöreät',
+    'Stövlar': 'Saappaat', 'Strumpor': 'Sukat', 'Mantel': 'Viitta', 'Vingar': 'Siivet', 'Ryggsäck': 'Reppu',
     '👕 Tröja': '👕 Paita',
     'Röd': 'Punainen', 'Randig': 'Raidallinen', 'Rosa': 'Pinkki', 'Grön': 'Vihreä', 'Blå': 'Sininen',
     '🎩 Hatt': '🎩 Hattu',
@@ -46,7 +49,10 @@ const TEXTS = {
     'Spela!': 'Play!',
     '🐶 Hund': '🐶 Dog',
     'Pudel': 'Poodle', 'Dalmatiner': 'Dalmatian', 'Mops': 'Pug',
-    'Välj hund och byt kläder med knapparna': 'Choose a dog and change clothes with the buttons',
+    'Välj hund och kläder längst ner': 'Choose a dog and clothes at the bottom',
+    'Välj färg på kläderna': 'Pick colours for the clothes',
+    'Enfärgad': 'Plain', 'Keps': 'Cap', 'Mössa': 'Beanie', 'Färgade': 'Tinted', 'Runda': 'Round',
+    'Stövlar': 'Boots', 'Strumpor': 'Socks', 'Mantel': 'Cape', 'Vingar': 'Wings', 'Ryggsäck': 'Backpack',
     '👕 Tröja': '👕 Sweater',
     'Röd': 'Red', 'Randig': 'Striped', 'Rosa': 'Pink', 'Grön': 'Green', 'Blå': 'Blue',
     '🎩 Hatt': '🎩 Hat',
@@ -208,41 +214,37 @@ fluff(0.12, FUR, -0.16, 0.43, 0, TAILS.bushy);
 fluff(0.09, MUZZLE, -0.08, 0.55, 0, TAILS.bushy); // vit svanstipp
 
 // ---------- Kläder ----------
-// Varje sorts klädsel har en lista med val. Knapparna längst ner bläddrar mellan dem.
+// Varje sorts klädsel har en lista med plagg: [namn, startfärg, hur plagget byggs].
+// "m" är plaggets huvudfärg, den som färgknapparna i garderoben ändrar.
 function mat(color) {
   return new THREE.MeshStandardMaterial({ color, roughness: 0.6 });
 }
-function bow(parent, color, x, y, z, size = 1) {
-  const m = mat(color);
+function bow(parent, m, x, y, z, size = 1) {
   for (const side of [-1, 1]) {
     fluff(1, m, x, y, z + side * 0.1 * size, parent).scale.set(0.05 * size, 0.09 * size, 0.1 * size);
   }
   fluff(0.05 * size, m, x + 0.02, y, z, parent);
 }
-function glasses(parent, lensColor, frameColor) {
+function glasses(parent, lensMat, frameMat) {
   const lens = new THREE.CylinderGeometry(0.085, 0.085, 0.03, 20);
   for (const z of [-0.13, 0.13]) {
-    part(lens, mat(lensColor), 0.34, 0.09, z, parent).rotation.z = Math.PI / 2;
-    part(new THREE.TorusGeometry(0.085, 0.015, 8, 20), mat(frameColor), 0.35, 0.09, z, parent).rotation.y = Math.PI / 2;
+    part(lens, lensMat, 0.34, 0.09, z, parent).rotation.z = Math.PI / 2;
+    part(new THREE.TorusGeometry(0.085, 0.015, 8, 20), frameMat, 0.35, 0.09, z, parent).rotation.y = Math.PI / 2;
   }
-  part(new THREE.BoxGeometry(0.02, 0.025, 0.1), mat(frameColor), 0.35, 0.1, 0, parent);
+  part(new THREE.BoxGeometry(0.02, 0.025, 0.1), frameMat, 0.35, 0.1, 0, parent);
 }
-function collar(parent, color, thickness) {
-  const neck = new THREE.Group();
-  neck.position.set(0.42, 0.86, 0);
+function collar(parent, m, thickness) {
+  const neck = group(parent, 0.42, 0.86, 0);
   neck.rotation.z = -0.6;
-  parent.add(neck);
-  part(new THREE.TorusGeometry(0.2, thickness, 10, 24), mat(color), 0, 0, 0, neck).rotation.x = Math.PI / 2;
+  part(new THREE.TorusGeometry(0.2, thickness, 10, 24), m, 0, 0, 0, neck).rotation.x = Math.PI / 2;
   return neck;
 }
-
-function sweater(parent, color, stripeColor) {
-  const knit = new THREE.MeshStandardMaterial({ color, roughness: 1 });
-  const torso = part(new THREE.CapsuleGeometry(0.39, 0.4, 8, 16), knit, 0, 0.6, 0, parent);
+function sweater(parent, m, stripeColor) {
+  const torso = part(new THREE.CapsuleGeometry(0.39, 0.4, 8, 16), m, 0, 0.6, 0, parent);
   torso.rotation.z = Math.PI / 2; // lägg tröjan ner längs kroppen
   torso.scale.set(0.9, 1, 1);
   for (const z of [-0.17, 0.17]) {
-    part(new THREE.CylinderGeometry(0.15, 0.15, 0.16, 12), knit, 0.3, 0.27, z, parent); // ärmar
+    part(new THREE.CylinderGeometry(0.15, 0.15, 0.16, 12), m, 0.3, 0.27, z, parent); // ärmar
   }
   if (stripeColor !== undefined) {
     for (const x of [-0.22, 0, 0.22]) {
@@ -252,96 +254,157 @@ function sweater(parent, color, stripeColor) {
     }
   }
 }
+function dome(parent, m, radius, y) {
+  return part(new THREE.SphereGeometry(radius, 20, 10, 0, Math.PI * 2, 0, Math.PI / 2), m, 0, y, 0, parent);
+}
+const PAWS = [[-0.3, -0.17], [-0.3, 0.17], [0.3, -0.17], [0.3, 0.17]];
 
 const wardrobe = [
   {
-    label: '👕 Tröja',
-    parent: upper,
+    id: 'sweater', icon: '👕', parent: upper,
     options: [
-      ['Röd', (g) => sweater(g, 0xe63946)],
-      ['Randig', (g) => sweater(g, 0x2a6bff, 0xffffff)],
-      ['Rosa', (g) => sweater(g, 0xff8fc7, 0xffffff)],
-      ['Grön', (g) => sweater(g, 0x2ecc71, 0xffd93d)],
-    ],
-  },
-  {
-    label: '🎩 Hatt',
-    parent: head,
-    options: [
-      ['Partyhatt', (g) => {
-        part(new THREE.ConeGeometry(0.17, 0.42, 16), mat(0xff5fa2), 0, 0.6, 0, g);
-        fluff(0.06, mat(0xffd93d), 0, 0.83, 0, g);
-      }],
-      ['Krona', (g) => {
-        const gold = new THREE.MeshStandardMaterial({ color: 0xffc933, roughness: 0.3, metalness: 0.5 });
-        part(new THREE.CylinderGeometry(0.17, 0.15, 0.12, 16), gold, 0, 0.47, 0, g);
-        for (let i = 0; i < 5; i++) {
-          const a = (i / 5) * Math.PI * 2;
-          part(new THREE.ConeGeometry(0.04, 0.12, 8), gold, Math.cos(a) * 0.14, 0.58, Math.sin(a) * 0.14, g);
+      ['Enfärgad', 0xe63946, (g, m) => sweater(g, m)],
+      ['Randig', 0x2a9dff, (g, m) => sweater(g, m, 0xffffff)],
+      ['Tutu', 0xff8fc7, (g, m) => {
+        sweater(g, m);
+        for (const [x, radius, color] of [[-0.3, 0.4, m], [-0.36, 0.46, mat(0xffffff)]]) {
+          const frill = part(new THREE.TorusGeometry(radius, 0.09, 8, 28), color, x, 0.6, 0, g);
+          frill.rotation.y = Math.PI / 2;
+          frill.scale.set(1, 0.95, 0.45);
         }
       }],
-      ['Rosett', (g) => bow(g, 0xff5fa2, 0.12, 0.42, 0, 1.2)],
-      ['Trollhatt', (g) => {
-        part(new THREE.CylinderGeometry(0.32, 0.32, 0.03, 20), mat(0x7b3fd1), 0, 0.42, 0, g);
-        part(new THREE.ConeGeometry(0.2, 0.5, 16), mat(0x7b3fd1), 0, 0.68, 0, g);
+    ],
+  },
+  {
+    id: 'hat', icon: '🎩', parent: head,
+    options: [
+      ['Partyhatt', 0xff5fa2, (g, m) => {
+        part(new THREE.ConeGeometry(0.17, 0.42, 16), m, 0, 0.6, 0, g);
+        fluff(0.06, mat(0xffd93d), 0, 0.83, 0, g);
+      }],
+      ['Krona', 0xffc933, (g, m) => {
+        part(new THREE.CylinderGeometry(0.17, 0.15, 0.12, 16), m, 0, 0.47, 0, g);
+        for (let i = 0; i < 5; i++) {
+          const a = (i / 5) * Math.PI * 2;
+          part(new THREE.ConeGeometry(0.04, 0.12, 8), m, Math.cos(a) * 0.14, 0.58, Math.sin(a) * 0.14, g);
+          fluff(0.025, mat(0xe63946), Math.cos(a) * 0.14, 0.65, Math.sin(a) * 0.14, g);
+        }
+      }],
+      ['Rosett', 0xff5fa2, (g, m) => bow(g, m, 0.12, 0.42, 0, 1.2)],
+      ['Trollhatt', 0x7b3fd1, (g, m) => {
+        part(new THREE.CylinderGeometry(0.32, 0.32, 0.03, 20), m, 0, 0.42, 0, g);
+        part(new THREE.ConeGeometry(0.2, 0.5, 16), m, 0, 0.68, 0, g);
         fluff(0.05, mat(0xffd93d), 0, 0.94, 0, g);
       }],
+      ['Keps', 0x2a9dff, (g, m) => {
+        dome(g, m, 0.34, 0.14);
+        fluff(1, m, 0.36, 0.17, 0, g).scale.set(0.2, 0.025, 0.22); // skärm
+      }],
+      ['Mössa', 0x2ecc71, (g, m) => {
+        dome(g, m, 0.35, 0.13);
+        part(new THREE.TorusGeometry(0.34, 0.05, 8, 24), mat(0xffffff), 0, 0.15, 0, g).rotation.x = Math.PI / 2;
+        fluff(0.09, mat(0xffffff), 0, 0.52, 0, g);
+      }],
     ],
   },
   {
-    label: '🕶️ Glasögon',
-    parent: head,
+    id: 'glasses', icon: '🕶️', parent: head,
     options: [
-      ['Solbrillor', (g) => glasses(g, 0x111111, 0x111111)],
-      ['Rosa', (g) => glasses(g, 0xff9ecb, 0xff3d8b)],
-      ['Blå', (g) => glasses(g, 0x9ee7ff, 0x2a6bff)],
+      ['Solbrillor', 0x222222, (g, m) => glasses(g, mat(0x111111), m)],
+      ['Färgade', 0xff8fc7, (g, m) => glasses(g, m, m)],
+      ['Runda', 0xe63946, (g, m) => glasses(g, mat(0xdff6ff), m)],
     ],
   },
   {
-    label: '🎀 Hals',
-    parent: upper,
+    id: 'neck', icon: '🎀', parent: upper,
     options: [
-      ['Halsband', (g) => {
-        const neck = collar(g, 0x2a9dff, 0.04);
+      ['Halsband', 0x2a9dff, (g, m) => {
+        const neck = collar(g, m, 0.04);
         fluff(0.06, mat(0xffc933), 0.24, -0.04, 0, neck);
       }],
-      ['Halsduk', (g) => {
-        const neck = collar(g, 0xe63946, 0.075);
-        part(new THREE.BoxGeometry(0.06, 0.3, 0.12), mat(0xe63946), 0.24, -0.16, 0.06, neck);
+      ['Halsduk', 0xe63946, (g, m) => {
+        const neck = collar(g, m, 0.075);
+        part(new THREE.BoxGeometry(0.06, 0.3, 0.12), m, 0.24, -0.16, 0.06, neck);
       }],
-      ['Fluga', (g) => {
-        collar(g, 0x222222, 0.03);
-        bow(g, 0x2ecc71, 0.66, 0.78, 0, 1);
+      ['Fluga', 0x2ecc71, (g, m) => {
+        collar(g, mat(0x222222), 0.03);
+        bow(g, m, 0.66, 0.78, 0, 1);
+      }],
+    ],
+  },
+  {
+    id: 'shoes', icon: '👟', parent: legs,
+    options: [
+      ['Stövlar', 0xffd93d, (g, m) => {
+        for (const [x, z] of PAWS) {
+          part(new THREE.CylinderGeometry(0.145, 0.145, 0.2, 12), m, x, 0.12, z, g);
+          fluff(1, m, x + 0.08, 0.07, z, g).scale.set(0.14, 0.07, 0.14);
+        }
+      }],
+      ['Strumpor', 0xff8fc7, (g, m) => {
+        for (const [x, z] of PAWS) {
+          part(new THREE.CylinderGeometry(0.145, 0.145, 0.22, 12), m, x, 0.16, z, g);
+          part(new THREE.CylinderGeometry(0.15, 0.15, 0.04, 12), mat(0xffffff), x, 0.26, z, g);
+        }
+      }],
+    ],
+  },
+  {
+    id: 'back', icon: '🦋', parent: upper,
+    options: [
+      ['Mantel', 0xe63946, (g, m) => {
+        // en halv tratt som ligger över ryggen och blir bredare bakåt
+        m.side = THREE.DoubleSide;
+        const cape = part(new THREE.CylinderGeometry(0.56, 0.4, 1.0, 20, 1, true, 0, Math.PI), m, -0.28, 0.64, 0, g);
+        cape.rotation.z = Math.PI / 2;
+        fluff(0.06, mat(0xffd93d), 0.3, 1.0, 0, g); // guldknapp vid halsen
+      }],
+      ['Vingar', 0xffffff, (g, m) => {
+        for (const side of [-1, 1]) {
+          const wing = fluff(1, m, -0.05, 1.18, side * 0.24, g);
+          wing.scale.set(0.2, 0.34, 0.04);
+          wing.rotation.x = side * 0.6;
+        }
+      }],
+      ['Ryggsäck', 0x7b3fd1, (g, m) => {
+        part(new THREE.BoxGeometry(0.34, 0.26, 0.36), m, -0.08, 1.05, 0, g);
+        part(new THREE.BoxGeometry(0.04, 0.14, 0.22), mat(0xffd93d), -0.26, 1.02, 0, g);
       }],
     ],
   },
 ];
 
-const buttonBar = document.getElementById('buttons');
+// Bygg alla plagg en gång och göm dem. wear() visar det plagg man har valt.
 for (const kind of wardrobe) {
-  kind.items = kind.options.map(([, build]) => {
-    const g = new THREE.Group();
-    build(g);
+  kind.main = mat(0xffffff);
+  kind.items = kind.options.map(([, , build]) => {
+    const g = group(kind.parent);
+    build(g, kind.main);
     g.visible = false;
-    kind.parent.add(g);
     return g;
   });
   kind.choice = -1; // -1 betyder ingenting på sig
-  const button = document.createElement('button');
-  const show = () => {
-    kind.items.forEach((g, i) => (g.visible = i === kind.choice));
-    const name = kind.choice < 0 ? 'ingen' : kind.options[kind.choice][0];
-    button.innerHTML = `${t(kind.label)}<small>${t(name)}</small>`;
-  };
-  refreshers.push(show);
-  button.addEventListener('click', () => {
-    kind.choice = kind.choice + 1 >= kind.items.length ? -1 : kind.choice + 1;
-    show();
-    speedY = Math.max(speedY, 2.5); // ett litet glädjeskutt
-  });
-  show();
-  buttonBar.appendChild(button);
+  kind.color = 0xffffff;
 }
+function wear(kind, choice, color) {
+  kind.choice = choice;
+  if (color !== undefined) kind.color = color;
+  else if (choice >= 0) kind.color = kind.options[choice][1]; // nytt plagg börjar med sin egen färg
+  kind.items.forEach((g, i) => (g.visible = i === choice));
+  kind.main.color.setHex(kind.color);
+}
+function saveOutfit() {
+  const outfit = {};
+  for (const kind of wardrobe) outfit[kind.id] = [kind.choice, kind.color];
+  try { localStorage.setItem('outfit', JSON.stringify(outfit)); } catch {}
+}
+try {
+  const outfit = JSON.parse(localStorage.getItem('outfit')) || {};
+  for (const kind of wardrobe) {
+    const [choice, color] = outfit[kind.id] || [];
+    if (kind.items[choice] && Number.isFinite(color)) wear(kind, choice, color);
+  }
+} catch {}
 
 // ---------- Hundtyper ----------
 // Varje hundtyp har egen storlek, benlängd, nos, öron, svans och färger.
@@ -375,8 +438,7 @@ let breedIndex = 0;
 try { breedIndex = Number(localStorage.getItem('breed')) || 0; } catch {}
 if (!BREEDS[breedIndex]) breedIndex = 0;
 let breed = BREEDS[breedIndex];
-const hats = wardrobe.find((kind) => kind.label === '🎩 Hatt');
-const breedButton = document.createElement('button');
+const hats = wardrobe.find((kind) => kind.id === 'hat');
 function showBreed() {
   breed = BREEDS[breedIndex];
   FUR.color.setHex(breed.fur);
@@ -403,18 +465,87 @@ function showBreed() {
   for (const [kind, shape] of Object.entries(TAILS)) shape.visible = kind === breed.tail;
   spots.visible = spotsOnHead.visible = !!breed.spots;
   for (const hat of hats.items) hat.position.y = breed.lugg ? 0 : -0.1; // hatten sitter lägre utan lugg
-
-  breedButton.innerHTML = `${t('🐶 Hund')}<small>${t(breed.name)}</small>`;
 }
-breedButton.addEventListener('click', () => {
-  breedIndex = (breedIndex + 1) % BREEDS.length;
-  try { localStorage.setItem('breed', breedIndex); } catch {}
-  showBreed();
-  speedY = Math.max(speedY, 2.5);
-});
-refreshers.push(showBreed);
 showBreed();
-buttonBar.prepend(breedButton);
+
+// ---------- Garderoben ----------
+// Flikarna längst ner väljer vad man klär på. Ovanför visas alla plagg och färger.
+const COLORS = [0xe63946, 0xff8fc7, 0xff9f1c, 0xffd93d, 0x2ecc71, 0x2a9dff, 0x7b3fd1, 0xffffff];
+const chipsBar = document.getElementById('chips');
+const colorsBar = document.getElementById('colors');
+const tabsBar = document.getElementById('tabs');
+const tabs = [{ icon: '🐶' }, ...wardrobe]; // första fliken är hundtyp
+let activeTab = 0;
+
+function hop() {
+  speedY = Math.max(speedY, 2.5); // ett litet glädjeskutt
+}
+function button(parent, className, label, chosen, onClick) {
+  const el = document.createElement('button');
+  el.className = className + (chosen ? ' chosen' : '');
+  el.textContent = label;
+  el.addEventListener('click', () => {
+    onClick();
+    hop();
+    showWardrobe();
+  });
+  parent.appendChild(el);
+  return el;
+}
+function showWardrobe() {
+  [...tabsBar.children].forEach((el, i) => el.classList.toggle('chosen', i === activeTab));
+  chipsBar.textContent = '';
+  colorsBar.textContent = '';
+  const kind = tabs[activeTab];
+  if (activeTab === 0) {
+    BREEDS.forEach((b, i) => {
+      button(chipsBar, 'chip', t(b.name), i === breedIndex, () => {
+        breedIndex = i;
+        try { localStorage.setItem('breed', i); } catch {}
+        showBreed();
+      });
+    });
+  } else {
+    button(chipsBar, 'chip', '✖ ' + t('ingen'), kind.choice < 0, () => { wear(kind, -1); saveOutfit(); });
+    kind.options.forEach(([name], i) => {
+      button(chipsBar, 'chip', t(name), i === kind.choice, () => { wear(kind, i); saveOutfit(); });
+    });
+    if (kind.choice >= 0) {
+      for (const color of COLORS) {
+        const dot = button(colorsBar, 'dot', '', color === kind.color, () => { wear(kind, kind.choice, color); saveOutfit(); });
+        dot.style.background = '#' + color.toString(16).padStart(6, '0');
+      }
+    }
+  }
+  colorsBar.style.visibility = colorsBar.children.length ? 'visible' : 'hidden';
+}
+tabs.forEach((tab, i) => {
+  const el = document.createElement('button');
+  el.className = 'tab';
+  el.textContent = tab.icon;
+  el.addEventListener('click', () => {
+    activeTab = i;
+    chipsBar.scrollLeft = 0;
+    showWardrobe();
+  });
+  tabsBar.appendChild(el);
+});
+// Tärningen klär hunden i slumpade kläder och färger
+const dice = document.createElement('button');
+dice.className = 'tab';
+dice.textContent = '🎲';
+dice.addEventListener('click', () => {
+  for (const kind of wardrobe) {
+    const choice = Math.floor(Math.random() * (kind.items.length + 1)) - 1;
+    wear(kind, choice, COLORS[Math.floor(Math.random() * COLORS.length)]);
+  }
+  saveOutfit();
+  speedY = TAP_SPEED;
+  showWardrobe();
+});
+tabsBar.appendChild(dice);
+refreshers.push(showWardrobe);
+showWardrobe();
 
 dog.rotation.y = -0.5; // vrid hunden lite mot kameran
 scene.add(dog);
@@ -488,6 +619,17 @@ let savedLang = 'sv';
 try { savedLang = localStorage.getItem('lang') || 'sv'; } catch {}
 setLanguage(savedLang === 'sv' || TEXTS[savedLang] ? savedLang : 'sv');
 
+// Testläge för utvecklaren: adressen #test21 visar hund nummer 2 med plagg nummer 1, utan startsida
+const test = location.hash.match(/^#test(\d)(\d?)/);
+if (test) {
+  startScreen.hidden = true;
+  breedIndex = Number(test[1]) % BREEDS.length;
+  showBreed();
+  if (test[2]) activeTab = 1;
+  if (test[2]) for (const kind of wardrobe) wear(kind, Math.min(Number(test[2]), kind.items.length - 1));
+  showWardrobe();
+}
+
 // Jordglob-knappen öppnar språkvalet igen, mitt i spelet. Kläderna och namnet finns kvar.
 document.getElementById('language').addEventListener('click', () => {
   startScreen.hidden = false;
@@ -497,10 +639,12 @@ document.getElementById('language').addEventListener('click', () => {
 function resize() {
   const aspect = window.innerWidth / window.innerHeight;
   camera.aspect = aspect;
-  camera.position.z = aspect < 1 ? 7.5 : 6; // lite längre bort på stående mobil
+  camera.position.z = aspect < 1 ? 5.4 : 4.3; // lite längre bort på stående mobil
+  lift = window.innerHeight < 520 ? 0.4 : 0.15; // flytta upp hunden så att garderoben inte skymmer den
   camera.updateProjectionMatrix();
   renderer.setSize(window.innerWidth, window.innerHeight);
 }
+let lift = 0;
 window.addEventListener('resize', resize);
 resize();
 
@@ -530,8 +674,8 @@ renderer.setAnimationLoop(() => {
   // Kameran följer mjukt med hunden uppåt
   const targetY = Math.max(1, dog.position.y + DOG_CENTER);
   cameraY += (targetY - cameraY) * Math.min(1, dt * 5);
-  camera.position.y = cameraY + 1;
-  camera.lookAt(0, cameraY, 0);
+  camera.position.y = cameraY + 1 - lift;
+  camera.lookAt(0, cameraY - lift, 0);
 
   renderer.render(scene, camera);
 });

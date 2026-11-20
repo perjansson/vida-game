@@ -40,22 +40,47 @@
       }
       #language:active { transform: translateY(3px); box-shadow: 0 1px 0 #ff5fa2; }
       #name::placeholder { color: #b9a6dd; }
-      #buttons {
-        position: fixed; left: 0; right: 0; bottom: max(12px, env(safe-area-inset-bottom));
-        display: grid; grid-template-columns: repeat(5, minmax(0, 160px));
-        justify-content: center; gap: 10px; padding: 0 10px;
-      }
-      #buttons button {
+      #wardrobe {
+        position: fixed; left: 0; right: 0; bottom: 0;
+        padding: 8px 8px max(8px, env(safe-area-inset-bottom));
+        display: flex; flex-direction: column; gap: 6px;
+        background: rgba(27, 16, 53, 0.72); border-top: 3px solid #ffd93d;
         font-family: 'Luckiest Guy', system-ui, sans-serif;
-        font-size: clamp(16px, 4.2vw, 24px); letter-spacing: 1px;
-        min-height: 64px; padding: 8px 14px;
-        color: #2a1458; background: #ffd93d;
-        border: 3px solid #2a1458; border-radius: 18px;
-        box-shadow: 0 5px 0 #ff5fa2; cursor: pointer;
+      }
+      #wardrobe button {
+        font-family: inherit; cursor: pointer; flex: none;
         touch-action: manipulation; user-select: none; -webkit-tap-highlight-color: transparent;
       }
-      #buttons button:active { transform: translateY(4px); box-shadow: 0 1px 0 #ff5fa2; }
-      #buttons small { display: block; font-size: 0.7em; color: #7b3fd1; margin-top: 2px; }
+      #chips { display: flex; gap: 8px; overflow-x: auto; padding: 3px; scrollbar-width: none; }
+      #chips::-webkit-scrollbar { display: none; }
+      #chips > :first-child { margin-left: auto; }
+      #chips > :last-child { margin-right: auto; }
+      .chip {
+        min-height: 46px; padding: 6px 14px; white-space: nowrap;
+        font-size: clamp(15px, 4vw, 20px); letter-spacing: 0.5px;
+        color: #2a1458; background: #fff; border: 3px solid #2a1458; border-radius: 14px;
+      }
+      .chip.chosen { background: #ffd93d; box-shadow: 0 0 0 3px #ff5fa2; }
+      #colors { display: flex; gap: 7px; justify-content: center; min-height: 36px; }
+      .dot { width: 36px; height: 36px; padding: 0; border-radius: 50%; border: 3px solid #2a1458; }
+      .dot.chosen { box-shadow: 0 0 0 3px #ffd93d; transform: scale(1.12); }
+      #tabs { display: flex; gap: 5px; justify-content: center; }
+      #wardrobe .tab {
+        flex: 1 1 0; min-width: 0; max-width: 80px; height: 50px; padding: 0; font-size: 24px;
+        background: #ffd93d; border: 3px solid #2a1458; border-radius: 14px; box-shadow: 0 4px 0 #ff5fa2;
+      }
+      #wardrobe .tab.chosen { background: #ff5fa2; box-shadow: none; transform: translateY(3px); }
+      #wardrobe .tab:active { transform: translateY(3px); box-shadow: none; }
+      /* Liggande mobil: lägg plagg och färger bredvid varandra så att hunden får plats */
+      @media (max-height: 520px) and (min-width: 600px) {
+        #wardrobe { flex-direction: row; flex-wrap: wrap; align-items: center; justify-content: center; padding-top: 5px; column-gap: 12px; }
+        #chips { flex: 1 1 50%; min-width: 0; }
+        #colors { gap: 5px; }
+        .dot { width: 30px; height: 30px; }
+        #tabs { flex: 1 1 100%; }
+        #wardrobe .tab { height: 42px; }
+        .chip { min-height: 42px; }
+      }
       #start {
         position: fixed; inset: 0; z-index: 10;
         display: flex; align-items: center; justify-content: center;
@@ -107,10 +132,6 @@
       }
       #play:active { transform: translateY(4px); box-shadow: 0 2px 0 #14532d; animation: none; }
       @keyframes pulse { 50% { transform: scale(1.04); } }
-      @media (max-width: 600px) {
-        #buttons { grid-template-columns: repeat(3, 1fr); gap: 8px; }
-        #buttons button { padding: 6px 4px; font-size: clamp(13px, 3.8vw, 20px); min-height: 58px; }
-      }
     </style>
   </head>
   <body>
@@ -121,13 +142,18 @@
         <button id="language" aria-label="Byt språk">🌍</button>
       </div>
     </div>
-    <div id="buttons"></div>
+    <div id="wardrobe">
+      <div id="chips"></div>
+      <div id="colors"></div>
+      <div id="tabs"></div>
+    </div>
     <div id="start">
       <div id="card">
         <div class="paws">🐾 🐩 🐾</div>
         <h1 data-t="Klä ut hunden!">Klä ut hunden!</h1>
         <ul>
-          <li><span>🐶</span><span data-t="Välj hund och byt kläder med knapparna">Välj hund och byt kläder med knapparna</span></li>
+          <li><span>🐶</span><span data-t="Välj hund och kläder längst ner">Välj hund och kläder längst ner</span></li>
+          <li><span>🎨</span><span data-t="Välj färg på kläderna">Välj färg på kläderna</span></li>
           <li><span>👆</span><span data-t="Dra för att snurra på hunden">Dra för att snurra på hunden</span></li>
           <li><span>⬆️</span><span data-t="Tryck på hunden så hoppar den">Tryck på hunden så hoppar den</span></li>
           <li><span>✏️</span><span data-t="Ge hunden ett namn">Ge hunden ett namn</span></li>
