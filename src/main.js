@@ -37,7 +37,7 @@ const TEXTS = {
     'Börja om från bana 1': 'Aloita alusta radalta 1', 'Säker? Tryck igen för att börja om': 'Varmasti? Paina uudelleen',
     'Matta': 'Matto', 'Blommor': 'Kukat', 'Ballonger': 'Ilmapallot', 'Korg': 'Kori', 'Träd': 'Puu', 'Hundkoja': 'Koirankoppi',
     'Lär': 'Opeta', 'Sitt': 'Istu', 'Snurra': 'Pyöri', 'Tass': 'Tassu', 'Dansa': 'Tanssi', 'Rulla': 'Kieri', 'Volt': 'Voltti',
-    'Promenad': 'Kävely', 'Gå på promenad som belöning': 'Palkinnoksi pääset kävelylle',
+    'Sova': 'Nuku', 'Promenad': 'Kävely', 'Gå på promenad som belöning': 'Palkinnoksi pääset kävelylle',
     'Köp': 'Osta', 'spring fler banor!': 'juokse lisää ratoja!', 'Boll': 'Pallo', 'Leka': 'Leiki', 'Nu behöver hunden lite omsorg': 'Nyt koira tarvitsee hoivaa',
     'Hunden är glad igen!': 'Koira on taas iloinen!',
     'Mat': 'Ruoka', 'Vatten': 'Vesi', 'Klappa': 'Silitä',
@@ -76,7 +76,7 @@ const TEXTS = {
     'Börja om från bana 1': 'Start over from level 1', 'Säker? Tryck igen för att börja om': 'Sure? Tap again to start over',
     'Matta': 'Rug', 'Blommor': 'Flowers', 'Ballonger': 'Balloons', 'Korg': 'Basket', 'Träd': 'Tree', 'Hundkoja': 'Dog house',
     'Lär': 'Teach', 'Sitt': 'Sit', 'Snurra': 'Spin', 'Tass': 'Paw', 'Dansa': 'Dance', 'Rulla': 'Roll', 'Volt': 'Flip',
-    'Promenad': 'Walk', 'Gå på promenad som belöning': 'Go for a walk as a reward',
+    'Sova': 'Sleep', 'Promenad': 'Walk', 'Gå på promenad som belöning': 'Go for a walk as a reward',
     'Köp': 'Buy', 'spring fler banor!': 'run more levels!', 'Boll': 'Ball', 'Nalle': 'Teddy', 'Leka': 'Play', 'Nu behöver hunden lite omsorg': 'Now the dog needs some care',
     'Hunden är glad igen!': 'The dog is happy again!',
     'Mat': 'Food', 'Vatten': 'Water', 'Klappa': 'Pet',
@@ -712,7 +712,7 @@ showHome();
 const TRICKS = { Sitt: 2, Snurra: 1.2, Tass: 2.2, Dansa: 2.6, Rulla: 1.05, Volt: 1.05 };
 let trick = null; // tricket hunden gör just nu
 function startTrick(name) {
-  if (trick) return;
+  if (trick || sleep) return;
   trick = { name, time: 0, length: TRICKS[name], baseY: dog.rotation.y };
   SOUND.bark();
   if (name === 'Rulla' || name === 'Volt') speedY = 6.3; // de här tricken görs i ett högt hopp
@@ -745,6 +745,52 @@ function updateTrick(dt) {
       SOUND.happy();
       burst('⭐');
     }
+  }
+}
+
+// ---------- Sova ----------
+// Har man köpt korgen kan hunden gå dit, lägga sig och ta en paus.
+const SLEEP_TIME = 7; // sekunder, inklusive att gå dit och tillbaka
+let sleep = null;
+function startSleep() {
+  if (sleep || trick || careAction || !placed.has('Korg')) return;
+  sleep = { time: 0, x: dog.position.x, z: dog.position.z, turn: dog.rotation.y, nextZ: 1 };
+}
+function stopSleep() {
+  if (!sleep) return;
+  dog.position.set(sleep.x, 0, sleep.z);
+  dog.rotation.set(0, sleep.turn, 0);
+  sleep = null;
+  showBreed(); // öppnar ögonen igen
+}
+function updateSleep(dt, time) {
+  if (!sleep) return;
+  if (mode !== 'dress' && mode !== 'care') return stopSleep();
+  sleep.time += dt;
+  // down går från 0 (står vid sin plats) till 1 (ligger i korgen) och tillbaka till 0
+  const down = Math.min(1, sleep.time / 0.8, (SLEEP_TIME - sleep.time) / 0.8);
+  const hipHeight = HIP * breed.legs * breed.size;
+  dog.position.set(sleep.x + (1.3 - sleep.x) * down, -(hipHeight - 0.22) * down, sleep.z + (-1.4 - sleep.z) * down);
+  dog.rotation.y = sleep.turn + (-1.0 - sleep.turn) * down;
+  hips.forEach((sameLeg, i) => {
+    for (const h of sameLeg) h.rotation.z = (i >= 2 ? 1.45 : -1.45) * down; // benen sträcks ut längs marken
+  });
+  head.rotation.z = -0.45 * down; // huvudet vilar
+  upper.scale.setScalar(1 + (down === 1 ? Math.sin(time * 2) * 0.015 : 0)); // andas lugnt
+  for (const eye of eyes) eye.scale.y = down === 1 ? 0.008 : 0.055 * (breed.eyes || 1); // blundar
+  tail.rotation.x = 0;
+  if (down === 1 && sleep.time > sleep.nextZ) {
+    sleep.nextZ = sleep.time + 1.3;
+    burst('💤');
+    tone(130, 95, 0.6, 'sine', 0.05); // en liten snarkning
+  }
+  if (sleep.time >= SLEEP_TIME) {
+    upper.scale.setScalar(1);
+    stopSleep();
+    SOUND.bark();
+    speedY = TAP_SPEED; // pigg och glad igen
+    if (mode === 'care') showMode();
+    else showWardrobe();
   }
 }
 
@@ -817,6 +863,7 @@ function showWardrobe() {
       }
     }
   } else if (kind.home) {
+    if (placed.has('Korg')) button(chipsBar, 'chip buy', '😴 ' + t('Sova'), false, startSleep);
     for (const [name] of HOME) {
       const price = PRICE[name];
       if (have(name)) {
@@ -1168,6 +1215,8 @@ function startWalk() {
   SOUND.happy();
 }
 function beginRun() {
+  stopSleep();
+  upper.scale.setScalar(1);
   stopTrying();
   showWardrobe();
   mode = 'run';
@@ -1523,7 +1572,7 @@ function showMode() {
     const b = document.createElement('button');
     b.className = 'chip' + (caredFor.has(name) ? ' chosen' : '');
     b.textContent = `${emoji} ${t(name)}${caredFor.has(name) ? ' ✓' : ''}`;
-    b.disabled = !!careAction || caredFor.has(name); // en sak i taget
+    b.disabled = !!careAction || !!sleep || caredFor.has(name); // en sak i taget
     b.addEventListener('click', () => {
       SOUND.pop();
       careAction = { name, emoji, time: 0 };
@@ -1538,6 +1587,16 @@ function showMode() {
   walkButton.disabled = !allDone || walked || !!careAction;
   walkButton.addEventListener('click', startWalk);
   careButtons.appendChild(walkButton);
+  // Sova i korgen, om man har köpt den och ställt fram den
+  const sleepButton = document.createElement('button');
+  sleepButton.className = 'chip' + (placed.has('Korg') ? '' : ' locked');
+  sleepButton.textContent = (placed.has('Korg') ? '😴 ' : '🔒 ') + t('Sova');
+  sleepButton.disabled = !placed.has('Korg') || !!careAction || !!sleep;
+  sleepButton.addEventListener('click', () => {
+    startSleep();
+    showMode();
+  });
+  careButtons.appendChild(sleepButton);
   el('nextLevel').textContent = '▶ ' + t('Bana {n}').replace('{n}', level);
   el('nextLevel').disabled = !allDone;
   el('careHome').textContent = '👗 ' + t('Garderoben');
@@ -1620,6 +1679,13 @@ soundButton.addEventListener('click', () => {
   SOUND.pop();
 });
 
+if (location.hash === '#sleep') { // testläge: visa hunden sovande i korgen
+  startScreen.hidden = true;
+  for (const [name] of HOME) placed.add(name);
+  showHome();
+  startSleep();
+  sleep.time = 2;
+}
 if (location.hash.startsWith('#trick')) { // testläge: visa ett trick mitt i rörelsen
   startScreen.hidden = true;
   startTrick(Object.keys(TRICKS)[Number(location.hash[6]) || 0]);
@@ -1696,6 +1762,7 @@ renderer.setAnimationLoop(() => {
     for (const h of sameLeg) h.rotation.z = swing;
   });
   updateTrick(dt);
+  updateSleep(dt, time);
 
   if (mode === 'run' || mode === 'lost') {
     // Kameran springer med rakt bakom hunden, så att man ser kroppen och alla tre filerna
