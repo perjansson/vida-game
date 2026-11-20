@@ -32,7 +32,7 @@ const TEXTS = {
     'Spring bana {n}!': 'Juokse rata {n}!', 'Bana {n}': 'Rata {n}', 'Tryck för att hoppa!': 'Hyppää napauttamalla!',
     'Oj då!': 'Hups!', 'Hunden snubblade. Försök igen!': 'Koira kompastui. Yritä uudelleen!',
     'Försök igen': 'Yritä uudelleen', 'Garderoben': 'Vaatekaappi',
-    'Bra sprunget!': 'Hyvin juostu!', 'Nu behöver hunden lite omsorg': 'Nyt koira tarvitsee hoivaa',
+    'Bra sprunget!': 'Hyvin juostu!', 'Samla ben på banorna': 'Kerää luita radoilta', 'Nu behöver hunden lite omsorg': 'Nyt koira tarvitsee hoivaa',
     'Hunden är glad igen!': 'Koira on taas iloinen!',
     'Mat': 'Ruoka', 'Vatten': 'Vesi', 'Klappa': 'Silitä',
     'Välj färg på kläderna': 'Valitse vaatteiden väri',
@@ -65,7 +65,7 @@ const TEXTS = {
     'Spring bana {n}!': 'Run level {n}!', 'Bana {n}': 'Level {n}', 'Tryck för att hoppa!': 'Tap to jump!',
     'Oj då!': 'Oops!', 'Hunden snubblade. Försök igen!': 'The dog tripped. Try again!',
     'Försök igen': 'Try again', 'Garderoben': 'Wardrobe',
-    'Bra sprunget!': 'Well run!', 'Nu behöver hunden lite omsorg': 'Now the dog needs some care',
+    'Bra sprunget!': 'Well run!', 'Samla ben på banorna': 'Collect bones on the levels', 'Nu behöver hunden lite omsorg': 'Now the dog needs some care',
     'Hunden är glad igen!': 'The dog is happy again!',
     'Mat': 'Food', 'Vatten': 'Water', 'Klappa': 'Pet',
     'Välj färg på kläderna': 'Pick colours for the clothes',
@@ -792,6 +792,24 @@ const OBSTACLES = [
   } },
 ];
 
+// Hundben att samla på banan. Man får också ben för varje hjärta man har kvar i mål.
+let bones = 0; // alla ben man har tjänat
+try { bones = Math.max(0, Number(localStorage.getItem('bones')) || 0); } catch {}
+let runBones = 0; // ben man har plockat på den här banan
+let lastStars = 0;
+let lastReward = 0;
+let pickups = [];
+const boneGroup = group(runWorld);
+const BONE = new THREE.MeshStandardMaterial({ color: 0xfff6e0, roughness: 0.5, emissive: 0x665522 });
+const BONE_STICK = new THREE.CylinderGeometry(0.05, 0.05, 0.3, 8);
+function addBone(x, y) {
+  const g = group(boneGroup, x, y, 0);
+  part(BONE_STICK, BONE, 0, 0, 0, g).rotation.z = Math.PI / 2;
+  for (const [dx, dy] of [[-0.16, 0.05], [-0.16, -0.05], [0.16, 0.05], [0.16, -0.05]]) fluff(0.07, BONE, dx, dy, 0, g);
+  g.scale.setScalar(1.6); // stora nog att synas på håll
+  pickups.push({ x, y, group: g });
+}
+
 function addObstacle(kind, x) {
   const g = group(obstacleGroup, x, 0, 0);
   const animate = kind.build(g);
@@ -820,6 +838,16 @@ function startRun() {
     const kind = kinds[Math.floor(Math.random() * kinds.length)];
     x += runSpeed * (1.3 + Math.random() * 0.9) + (kind.roll ? 7 : 0); // rullande hinder får extra plats
     addObstacle(kind, x);
+  }
+  // Lägg ut ben: på marken mellan hindren och i luften ovanför en del hinder
+  boneGroup.clear();
+  pickups = [];
+  runBones = 0;
+  let before = 4;
+  for (const ob of obstacles) {
+    addBone((before + ob.x) / 2, 0.5);
+    if (!ob.bottom && !ob.roll && Math.random() < 0.6) addBone(ob.x, ob.top + 0.9);
+    before = ob.x;
   }
   goalX = x + 9;
   goal.position.x = goalX;
@@ -867,6 +895,16 @@ function updateRun(dt, time) {
     // Ett hinder man har slagit i försvinner: ner i marken, eller upp i luften om det flyger
     if (ob.hit && Math.abs(ob.group.position.y) < 4) ob.group.position.y += (ob.bottom ? 4 : -2.5) * dt;
   }
+  for (const bone of pickups) {
+    bone.group.rotation.y = time * 3;
+    const near = Math.abs(dog.position.x - bone.x) < 0.3 + 0.4 * breed.size;
+    if (bone.group.visible && near && bone.y > dog.position.y - 0.1 && bone.y < dogTop + 0.25) {
+      bone.group.visible = false;
+      runBones += 1;
+      SOUND.pop();
+      showHud();
+    }
+  }
   const start = dog.position.x - 12;
   roadside.forEach((bush, i) => {
     bush.position.x = start + ((((i * 5 - start) % 80) + 80) % 80);
@@ -888,6 +926,11 @@ function goHome() {
 function endRun(won) {
   dog.visible = true;
   if (won) {
+    // Belöning: fler hjärtan kvar ger fler stjärnor och fler ben
+    lastStars = hearts;
+    lastReward = 5 + hearts * 5 + runBones;
+    bones += lastReward;
+    try { localStorage.setItem('bones', bones); } catch {}
     level += 1;
     try { localStorage.setItem('level', level); } catch {}
     mode = 'care';
@@ -1011,6 +1054,7 @@ function dogName() {
 function showHud() {
   el('hearts').textContent = '❤️'.repeat(hearts) + '🤍'.repeat(3 - hearts);
   el('levelName').textContent = t('Bana {n}').replace('{n}', level);
+  el('runBones').textContent = '🦴 ' + runBones;
 }
 function showMode() {
   el('top').hidden = mode !== 'dress';
@@ -1027,7 +1071,9 @@ function showMode() {
   el('lostHome').textContent = '👗 ' + t('Garderoben');
 
   const allDone = caredFor.size === CARE.length;
-  el('careTitle').textContent = t('Bra sprunget!');
+  el('careTitle').textContent = t('Bra sprunget!') + ' ' + '⭐'.repeat(lastStars);
+  el('careReward').textContent = `+${lastReward} 🦴`;
+  el('boneCount').textContent = '🦴 ' + bones;
   el('careText').textContent = allDone ? t('Hunden är glad igen!') : t('Nu behöver hunden lite omsorg');
   careProps.visible = mode === 'care';
   const careButtons = el('careButtons');

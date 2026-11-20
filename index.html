@@ -196,6 +196,11 @@
         .panel { flex-direction: row; flex-wrap: wrap; justify-content: center; column-gap: 14px; }
         .panel h2 { font-size: 24px; }
       }
+      .count {
+        font-size: clamp(18px, 4.8vw, 26px); color: #2a1458; background: #fff6e0;
+        border: 3px solid #2a1458; border-radius: 16px; padding: 4px 12px; white-space: nowrap;
+      }
+      #careReward { font-size: clamp(22px, 6vw, 30px) !important; color: #ffd93d !important; }
     </style>
   </head>
   <body>
@@ -206,6 +211,7 @@
         <button id="language" aria-label="Byt språk">🌍</button>
         <button id="sound" aria-label="Ljud av eller på">🔊</button>
         <button id="runButton" class="go"></button>
+        <span id="boneCount" class="count"></span>
       </div>
     </div>
     <div id="wardrobe">
@@ -214,7 +220,7 @@
       <div id="tabs"></div>
     </div>
     <div id="hud" hidden>
-      <div id="hudRow"><span id="hearts"></span><span id="levelName"></span></div>
+      <div id="hudRow"><span id="hearts"></span><span id="levelName"></span><span id="runBones" class="count"></span></div>
       <div id="progress"><div id="progressBar"></div></div>
       <div id="hint"></div>
     </div>
@@ -228,6 +234,7 @@
     </div>
     <div id="care" class="panel" hidden>
       <h2 id="careTitle"></h2>
+      <p id="careReward"></p>
       <p id="careText"></p>
       <div id="careButtons"></div>
       <div id="careNext">
@@ -241,8 +248,8 @@
         <h1>Voffracet</h1>
         <ul>
           <li><span>🐶</span><span data-t="Välj hund och kläder längst ner">Välj hund och kläder längst ner</span></li>
-          <li><span>🎨</span><span data-t="Välj färg på kläderna">Välj färg på kläderna</span></li>
           <li><span>🏃</span><span data-t="Spring banor och hoppa över hinder">Spring banor och hoppa över hinder</span></li>
+          <li><span>🦴</span><span data-t="Samla ben på banorna">Samla ben på banorna</span></li>
           <li><span>💗</span><span data-t="Ta hand om hunden efter varje bana">Ta hand om hunden efter varje bana</span></li>
           <li><span>✏️</span><span data-t="Ge hunden ett namn">Ge hunden ett namn</span></li>
         </ul>
