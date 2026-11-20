@@ -29,7 +29,7 @@ const TEXTS = {
     'Välj hund och kläder längst ner': 'Valitse koira ja vaatteet alhaalta',
     'Spring banor och hoppa över hinder': 'Juokse ratoja ja hyppää esteiden yli',
     'Ta hand om hunden efter varje bana': 'Hoida koiraa jokaisen radan jälkeen',
-    'Spring bana {n}!': 'Juokse rata {n}!', 'Bana {n}': 'Rata {n}', 'Tryck för att hoppa!': 'Hyppää napauttamalla!',
+    'Spring bana {n}!': 'Juokse rata {n}!', 'Bana {n}': 'Rata {n}', 'Tryck för att hoppa!': 'Hyppää napauttamalla!', 'Hoppa': 'Hyppää',
     'Oj då!': 'Hups!', 'Hunden snubblade. Försök igen!': 'Koira kompastui. Yritä uudelleen!',
     'Försök igen': 'Yritä uudelleen', 'Garderoben': 'Vaatekaappi',
     'Bra sprunget!': 'Hyvin juostu!', 'Samla ben och köp kläder och leksaker': 'Kerää luita ja osta vaatteita ja leluja',
@@ -64,7 +64,7 @@ const TEXTS = {
     'Välj hund och kläder längst ner': 'Choose a dog and clothes at the bottom',
     'Spring banor och hoppa över hinder': 'Run levels and jump over obstacles',
     'Ta hand om hunden efter varje bana': 'Take care of the dog after each level',
-    'Spring bana {n}!': 'Run level {n}!', 'Bana {n}': 'Level {n}', 'Tryck för att hoppa!': 'Tap to jump!',
+    'Spring bana {n}!': 'Run level {n}!', 'Bana {n}': 'Level {n}', 'Tryck för att hoppa!': 'Tap to jump!', 'Hoppa': 'Jump',
     'Oj då!': 'Oops!', 'Hunden snubblade. Försök igen!': 'The dog tripped. Try again!',
     'Försök igen': 'Try again', 'Garderoben': 'Wardrobe',
     'Bra sprunget!': 'Well run!', 'Samla ben och köp kläder och leksaker': 'Collect bones and buy clothes and toys',
@@ -809,7 +809,15 @@ const runGroundMat = new THREE.MeshStandardMaterial({ roughness: 1 });
 const trackMat = new THREE.MeshStandardMaterial({ roughness: 1 });
 const bushMat = new THREE.MeshStandardMaterial({ roughness: 1 });
 const obstacleMat = new THREE.MeshStandardMaterial({ roughness: 0.8 });
-for (const [material, width, y] of [[runGroundMat, 120, -0.02], [trackMat, 3.4, 0]]) {
+// Banan har tre filer: vänster, mitten och höger
+const LANE = 1.5; // avståndet mellan två filer
+const lineMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.45 });
+for (const z of [-LANE / 2, LANE / 2]) {
+  const line = part(new THREE.PlaneGeometry(2600, 0.06), lineMat, 1250, 0.01, z, runWorld);
+  line.rotation.x = -Math.PI / 2;
+  line.castShadow = false;
+}
+for (const [material, width, y] of [[runGroundMat, 120, -0.02], [trackMat, 4.8, 0]]) {
   const plane = part(new THREE.PlaneGeometry(2600, width), material, 1250, y, 0, runWorld);
   plane.rotation.x = -Math.PI / 2;
   plane.castShadow = false;
@@ -817,36 +825,43 @@ for (const [material, width, y] of [[runGroundMat, 120, -0.02], [trackMat, 3.4, 
 }
 const roadside = []; // buskar som flyttas fram när hunden har sprungit förbi dem
 for (let i = 0; i < 16; i++) {
-  const bush = fluff(0.3 + (i % 3) * 0.12, bushMat, 0, 0.25, i % 2 ? 2.7 : -2.7, runWorld);
+  const bush = fluff(0.3 + (i % 3) * 0.12, bushMat, 0, 0.25, i % 2 ? 3.5 : -3.5, runWorld);
   bush.castShadow = false;
   roadside.push(bush);
 }
 const obstacleGroup = group(runWorld);
 const goal = group(runWorld);
-for (const z of [-1.8, 1.8]) part(new THREE.CylinderGeometry(0.07, 0.07, 2.6, 8), mat(0xffffff), 0, 1.3, z, goal);
-part(new THREE.BoxGeometry(0.08, 0.45, 3.7), mat(0xffd93d), 0, 2.5, 0, goal);
-for (let i = 0; i < 6; i++) part(new THREE.BoxGeometry(0.1, 0.2, 0.3), mat(0x2a1458), 0, 2.5 + (i % 2 ? 0.1 : -0.1), -1.5 + i * 0.6, goal);
+for (const z of [-2.6, 2.6]) part(new THREE.CylinderGeometry(0.07, 0.07, 2.6, 8), mat(0xffffff), 0, 1.3, z, goal);
+part(new THREE.BoxGeometry(0.08, 0.45, 5.3), mat(0xffd93d), 0, 2.5, 0, goal);
+for (let i = 0; i < 9; i++) part(new THREE.BoxGeometry(0.1, 0.2, 0.3), mat(0x2a1458), 0, 2.5 + (i % 2 ? 0.1 : -0.1), -2.4 + i * 0.6, goal);
 
-// Hindren. half = halva längden, top = hur högt man måste hoppa, fromLevel = första banan de finns på.
-// roll = rullar mot hunden, bottom = svävar i luften (då ska man INTE hoppa).
+// Hindren. Varje hinder står i en fil. half = halva längden, top = hur högt man måste hoppa,
+// fromLevel = första banan de finns på, roll = rullar mot hunden,
+// bottom = svävar i luften (hoppa inte där), tall = för högt att hoppa över (byt fil).
 const WATER = new THREE.MeshStandardMaterial({ color: 0x4ab8ff, roughness: 0.2 });
 const ROCK = new THREE.MeshStandardMaterial({ color: 0x8f8f9c, roughness: 1 });
+const TRUNK = new THREE.MeshStandardMaterial({ color: 0x7a4a2a, roughness: 1 });
 const OBSTACLES = [
   { fromLevel: 1, half: 0.22, top: 0.44, build: (g) => { // stock
-    part(new THREE.CylinderGeometry(0.22, 0.22, 2.4, 12), obstacleMat, 0, 0.22, 0, g).rotation.x = Math.PI / 2;
+    part(new THREE.CylinderGeometry(0.22, 0.22, 1.35, 12), obstacleMat, 0, 0.22, 0, g).rotation.x = Math.PI / 2;
   } },
   { fromLevel: 1, half: 0.6, top: 0.27, build: (g) => { // vattenpöl
     const puddle = part(new THREE.CylinderGeometry(1, 1, 0.03, 24), WATER, 0, 0.02, 0, g);
-    puddle.scale.set(0.65, 1, 1.25);
+    puddle.scale.set(0.65, 1, 0.66);
     puddle.castShadow = false;
   } },
+  { fromLevel: 1, half: 0.3, top: 9, tall: true, build: (g) => { // träd, för högt att hoppa över
+    part(new THREE.CylinderGeometry(0.14, 0.18, 1.3, 10), TRUNK, 0, 0.65, 0, g);
+    fluff(0.55, bushMat, 0, 1.7, 0, g);
+    fluff(0.4, bushMat, 0.1, 2.25, 0.1, g);
+  } },
   { fromLevel: 2, half: 0.2, top: 0.62, build: (g) => { // häck
-    part(new THREE.BoxGeometry(0.36, 0.5, 2.4), obstacleMat, 0, 0.25, 0, g);
-    for (const z of [-0.9, -0.3, 0.3, 0.9]) fluff(0.26, bushMat, 0, 0.48, z, g).scale.y = 0.16;
+    part(new THREE.BoxGeometry(0.36, 0.5, 1.35), obstacleMat, 0, 0.25, 0, g);
+    for (const z of [-0.42, 0, 0.42]) fluff(0.26, bushMat, 0, 0.48, z, g).scale.y = 0.16;
   } },
   { fromLevel: 2, half: 0.32, top: 0.66, build: (g) => { // stenar
-    for (const [z, size] of [[-0.85, 0.3], [-0.15, 0.36], [0.6, 0.28], [1.05, 0.2]]) {
-      fluff(size, ROCK, (z * 7 % 1) * 0.1, size * 0.8, z, g).scale.y = size * 0.9;
+    for (const [z, size] of [[-0.4, 0.28], [0.1, 0.36], [0.5, 0.2]]) {
+      fluff(size, ROCK, z * 0.2, size * 0.8, z, g).scale.y = size * 0.9;
     }
   } },
   { fromLevel: 3, half: 0.4, top: 0.8, roll: 2.5, build: (g) => { // boll som rullar mot hunden
@@ -857,23 +872,21 @@ const OBSTACLES = [
     }
     return (time) => (ball.rotation.z = time * 6);
   } },
-  { fromLevel: 4, half: 0.3, bottom: 2.0, build: (g) => { // fåglar som flyger lågt, spring under dem
-    const wings = [];
-    for (const z of [-0.9, 0, 0.9]) {
-      const bird = group(g, 0, 2.3, z);
-      fluff(0.17, mat(0xffd93d), 0, 0, 0, bird).scale.x = 0.24;
-      part(new THREE.ConeGeometry(0.05, 0.14, 8), mat(0xff9f1c), -0.26, 0, 0, bird).rotation.z = Math.PI / 2;
-      fluff(0.03, BLACK, -0.15, 0.07, 0.1, bird);
-      fluff(0.03, BLACK, -0.15, 0.07, -0.1, bird);
-      for (const side of [-1, 1]) {
-        const wing = group(bird, 0, 0.05, side * 0.1);
-        fluff(1, mat(0xffb703), 0, 0, side * 0.2, wing).scale.set(0.14, 0.025, 0.22);
-        wings.push([wing, side]);
-      }
-    }
+  { fromLevel: 4, half: 0.3, bottom: 2.0, build: (g) => { // fågel som flyger lågt: hoppa inte här
+    const bird = group(g, 0, 2.3, 0);
+    bird.scale.setScalar(1.5);
+    fluff(0.17, mat(0xffd93d), 0, 0, 0, bird).scale.x = 0.24;
+    part(new THREE.ConeGeometry(0.05, 0.14, 8), mat(0xff9f1c), -0.26, 0, 0, bird).rotation.z = Math.PI / 2;
+    fluff(0.03, BLACK, -0.15, 0.07, 0.1, bird);
+    fluff(0.03, BLACK, -0.15, 0.07, -0.1, bird);
+    const wings = [-1, 1].map((side) => {
+      const wing = group(bird, 0, 0.05, side * 0.1);
+      fluff(1, mat(0xffb703), 0, 0, side * 0.2, wing).scale.set(0.14, 0.025, 0.22);
+      return [wing, side];
+    });
     return (time) => {
       for (const [wing, side] of wings) wing.rotation.x = side * Math.sin(time * 14) * 0.7;
-      g.position.y = Math.sin(time * 3) * 0.08;
+      bird.position.y = 2.3 + Math.sin(time * 3) * 0.08;
     };
   } },
 ];
@@ -886,12 +899,12 @@ let pickups = [];
 const boneGroup = group(runWorld);
 const BONE = new THREE.MeshStandardMaterial({ color: 0xfff6e0, roughness: 0.5, emissive: 0x665522 });
 const BONE_STICK = new THREE.CylinderGeometry(0.05, 0.05, 0.3, 8);
-function addBone(x, y) {
-  const g = group(boneGroup, x, y, 0);
+function addBone(x, y, z) {
+  const g = group(boneGroup, x, y, z);
   part(BONE_STICK, BONE, 0, 0, 0, g).rotation.z = Math.PI / 2;
   for (const [dx, dy] of [[-0.16, 0.05], [-0.16, -0.05], [0.16, 0.05], [0.16, -0.05]]) fluff(0.07, BONE, dx, dy, 0, g);
   g.scale.setScalar(1.6); // stora nog att synas på håll
-  pickups.push({ x, y, group: g });
+  pickups.push({ x, y, z, group: g });
 }
 
 // Farten ökar hela tiden under banan: ju längre man har sprungit, desto fortare går det
@@ -900,10 +913,10 @@ function speedAt(x) {
   return Math.min(startSpeed + x * 0.02, startSpeed * 1.6, 12.5);
 }
 
-function addObstacle(kind, x) {
-  const g = group(obstacleGroup, x, 0, 0);
+function addObstacle(kind, x, z) {
+  const g = group(obstacleGroup, x, 0, z);
   const animate = kind.build(g);
-  obstacles.push({ ...kind, x, group: g, animate, hit: false });
+  obstacles.push({ ...kind, x, z, group: g, animate, hit: false });
 }
 
 function startRun() {
@@ -930,27 +943,37 @@ function startRun() {
   const shortest = Math.max(0.9, 1.35 - level * 0.05); // kortaste tiden mellan två hinder, i sekunder
   const extra = Math.max(0.3, 0.9 - level * 0.06); // hur mycket längre det kan vara ibland
   const kinds = OBSTACLES.filter((kind) => level >= kind.fromLevel);
-  let x = 10;
-  for (let i = 0; i < count; i++) {
-    const kind = kinds[Math.floor(Math.random() * kinds.length)];
-    x += speedAt(x) * (shortest + Math.random() * extra) + (kind.roll ? 7 : 0); // rullande hinder får extra plats
-    addObstacle(kind, x);
-  }
-  // Lägg ut ben: på marken mellan hindren och i luften ovanför en del hinder
   boneGroup.clear();
   pickups = [];
   runBones = 0;
-  let before = 4;
-  for (const ob of obstacles) {
-    addBone((before + ob.x) / 2, 0.5);
-    if (!ob.bottom && !ob.roll && Math.random() < 0.6) addBone(ob.x, ob.top + 0.9);
-    before = ob.x;
+  let x = 10;
+  for (let i = 0; i < count; i++) {
+    const kind = kinds[Math.floor(Math.random() * kinds.length)];
+    const before = x;
+    x += speedAt(x) * (shortest + Math.random() * extra) + (kind.roll ? 7 : 0); // rullande hinder får extra plats
+
+    // Välj vilka filer hindret står i. Det finns alltid en väg förbi:
+    // antingen en fri fil, eller så går hindret att hoppa över.
+    const jumpable = !kind.tall && !kind.bottom && !kind.roll;
+    let blocked = Math.random() < 0.5 ? 1 : 2;
+    if (jumpable && level >= 2 && Math.random() < 0.2) blocked = 3; // hela banan: man måste hoppa
+    const lanes = [-1, 0, 1].sort(() => Math.random() - 0.5);
+    lanes.forEach((lane, n) => {
+      if (n < blocked) {
+        addObstacle(kind, x, lane * LANE);
+        if (jumpable && Math.random() < 0.5) addBone(x, kind.top + 0.9, lane * LANE); // ben ovanför hindret
+      } else if (Math.random() < 0.5) {
+        addBone(x, 0.5, lane * LANE); // ben i den fria filen
+      }
+    });
+    addBone((before + x) / 2, 0.5, lanes[0] * LANE); // ben på vägen dit
   }
   goalX = x + 9;
   goal.position.x = goalX;
 
   dog.position.set(0, 0, 0);
   dog.rotation.set(0, 0, 0); // nosen pekar framåt längs banan
+  lane = 0; // börja i mittenfilen
   speedY = 0;
   hearts = 3;
   safeTime = 0;
@@ -963,22 +986,39 @@ function jump() {
     SOUND.jump();
   }
 }
+let lane = 0; // -1 = vänster, 0 = mitten, 1 = höger
+function changeLane(step) {
+  if (mode !== 'run') return;
+  const next = Math.max(-1, Math.min(1, lane + step));
+  if (next !== lane) SOUND.pop();
+  lane = next;
+}
 window.addEventListener('keydown', (event) => {
-  if (mode !== 'run' || !['Space', 'ArrowUp', 'KeyW'].includes(event.code)) return;
+  if (mode !== 'run') return;
+  if (['Space', 'ArrowUp', 'KeyW'].includes(event.code)) jump();
+  else if (['ArrowLeft', 'KeyA'].includes(event.code)) changeLane(-1);
+  else if (['ArrowRight', 'KeyD'].includes(event.code)) changeLane(1);
+  else return;
   event.preventDefault();
-  jump();
 });
+// Pilknapparna på skärmen (pointerdown i stället för click, så att det går fort)
+document.getElementById('left').addEventListener('pointerdown', () => changeLane(-1));
+document.getElementById('right').addEventListener('pointerdown', () => changeLane(1));
 
 function updateRun(dt, time) {
   runSpeed = speedAt(dog.position.x);
   dog.position.x += runSpeed * dt;
+  // Glid mjukt över till den fil man har valt
+  const sideways = lane * LANE - dog.position.z;
+  dog.position.z += Math.sign(sideways) * Math.min(Math.abs(sideways), 9 * dt);
+  dog.rotation.y = -sideways * 0.35; // nosen vrids lite åt det håll hunden är på väg
   safeTime -= dt;
   const dogTop = dog.position.y + (1.3 + upperBase) * breed.size; // hundens huvud
   for (const ob of obstacles) {
     if (ob.roll && !ob.hit && ob.x - dog.position.x < 22) ob.x -= (ob.roll + level * 0.1) * dt; // bollen rullar fortare på högre banor
     ob.group.position.x = ob.x;
     if (ob.animate && !ob.hit) ob.animate(time);
-    const close = Math.abs(dog.position.x - ob.x) < 0.4 * breed.size + ob.half;
+    const close = Math.abs(dog.position.x - ob.x) < 0.4 * breed.size + ob.half && Math.abs(dog.position.z - ob.z) < 0.7;
     const touching = ob.bottom ? dogTop > ob.bottom + 0.1 : dog.position.y < ob.top - 0.12;
     if (!ob.hit && close && touching) {
       ob.hit = true;
@@ -995,7 +1035,7 @@ function updateRun(dt, time) {
   }
   for (const bone of pickups) {
     bone.group.rotation.y = time * 3;
-    const near = Math.abs(dog.position.x - bone.x) < 0.3 + 0.4 * breed.size;
+    const near = Math.abs(dog.position.x - bone.x) < 0.3 + 0.4 * breed.size && Math.abs(dog.position.z - bone.z) < 0.75;
     if (bone.group.visible && near && bone.y > dog.position.y - 0.1 && bone.y < dogTop + 0.25) {
       bone.group.visible = false;
       runBones += 1;
@@ -1165,6 +1205,7 @@ function showMode() {
   el('top').hidden = mode !== 'dress';
   el('wardrobe').hidden = mode !== 'dress';
   el('hud').hidden = mode !== 'run' && mode !== 'lost';
+  el('controls').hidden = mode !== 'run';
   el('lost').hidden = mode !== 'lost';
   el('care').hidden = mode !== 'care';
   showHud();
@@ -1231,7 +1272,7 @@ if (location.hash === '#run' || location.hash.startsWith('#care')) {
     obstacleGroup.clear();
     obstacles = [];
     startSpeed = 0.01;
-    OBSTACLES.forEach((kind, i) => addObstacle({ ...kind, roll: 0 }, 2.5 + i * 2.6));
+    OBSTACLES.forEach((kind, i) => addObstacle({ ...kind, roll: 0 }, 3 + i * 2.2, ((i % 3) - 1) * LANE));
   }
   if (location.hash.startsWith('#care')) {
     endRun(true);
@@ -1344,11 +1385,10 @@ renderer.setAnimationLoop(() => {
   });
 
   if (mode === 'run' || mode === 'lost') {
-    // Kameran springer med snett bakom hunden, så att man ser kroppen och hindren framför
+    // Kameran springer med rakt bakom hunden, så att man ser kroppen och alla tre filerna
     const narrow = camera.aspect < 1;
-    // (på stående mobil nästan rakt bakifrån, annars syns inte hindren)
-    camera.position.set(dog.position.x - (narrow ? 5 : 3.2), narrow ? 3.6 : 2.6, narrow ? 1.7 : 4.6);
-    camera.lookAt(dog.position.x + (narrow ? 4 : 2.6), narrow ? 0.4 : 0.7, 0);
+    camera.position.set(dog.position.x - (narrow ? 5.2 : 4.2), narrow ? 4.2 : 3.1, dog.position.z * 0.4);
+    camera.lookAt(dog.position.x + (narrow ? 4 : 4.5), 0.4, dog.position.z * 0.4);
   } else {
     // Kameran följer mjukt med hunden uppåt
     const targetY = Math.max(1, dog.position.y + DOG_CENTER);
