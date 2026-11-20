@@ -8,7 +8,6 @@
       html, body { margin: 0; height: 100%; overflow: hidden; background: #1b1035; }
       canvas { display: block; touch-action: none; }
       #info {
-        position: fixed; top: max(14px, env(safe-area-inset-top)); left: 0; right: 0;
         padding: 0 12px; text-align: center;
         font-family: 'Luckiest Guy', system-ui, sans-serif;
         font-size: clamp(26px, 7vw, 54px); line-height: 1.1; letter-spacing: 1px;
@@ -19,14 +18,32 @@
         transform: rotate(-2deg);
         pointer-events: none; user-select: none;
       }
+      #top {
+        position: fixed; top: max(14px, env(safe-area-inset-top)); left: 0; right: 0;
+        display: flex; flex-direction: column; align-items: center; gap: 10px;
+        pointer-events: none;
+      }
+      #name {
+        pointer-events: auto;
+        font-family: 'Luckiest Guy', system-ui, sans-serif;
+        font-size: clamp(18px, 4.5vw, 24px); letter-spacing: 1px; text-align: center;
+        width: min(70vw, 300px); min-height: 48px; box-sizing: border-box; padding: 6px 12px;
+        color: #2a1458; background: #fff; border: 3px solid #2a1458; border-radius: 16px;
+        box-shadow: 0 4px 0 #ff5fa2; outline: none;
+      }
+      #name::placeholder { color: #b9a6dd; }
       #buttons {
         position: fixed; left: 0; right: 0; bottom: max(12px, env(safe-area-inset-bottom));
-        display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; padding: 0 10px;
+        display: grid; grid-template-columns: repeat(4, minmax(0, 170px));
+        justify-content: center; gap: 10px; padding: 0 10px;
+      }
+      @media (max-width: 600px) {
+        #buttons { grid-template-columns: repeat(2, 1fr); }
       }
       #buttons button {
         font-family: 'Luckiest Guy', system-ui, sans-serif;
         font-size: clamp(16px, 4.2vw, 24px); letter-spacing: 1px;
-        min-width: 104px; min-height: 64px; padding: 8px 14px;
+        min-height: 64px; padding: 8px 14px;
         color: #2a1458; background: #ffd93d;
         border: 3px solid #2a1458; border-radius: 18px;
         box-shadow: 0 5px 0 #ff5fa2; cursor: pointer;
@@ -37,7 +54,10 @@
     </style>
   </head>
   <body>
-    <div id="info">Klä ut hunden!</div>
+    <div id="top">
+      <div id="info">Klä ut hunden!</div>
+      <input id="name" type="text" maxlength="12" placeholder="Skriv hundens namn" autocomplete="off" autocapitalize="words" spellcheck="false" />
+    </div>
     <div id="buttons"></div>
     <script type="module" src="/src/main.js"></script>
   </body>

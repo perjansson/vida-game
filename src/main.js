@@ -148,7 +148,34 @@ function collar(parent, color, thickness) {
   return neck;
 }
 
+function sweater(parent, color, stripeColor) {
+  const knit = new THREE.MeshStandardMaterial({ color, roughness: 1 });
+  const torso = part(new THREE.CapsuleGeometry(0.39, 0.4, 8, 16), knit, 0, 0.6, 0, parent);
+  torso.rotation.z = Math.PI / 2; // lägg tröjan ner längs kroppen
+  torso.scale.set(0.9, 1, 1);
+  for (const z of [-0.17, 0.17]) {
+    part(new THREE.CylinderGeometry(0.15, 0.15, 0.16, 12), knit, 0.3, 0.27, z, parent); // ärmar
+  }
+  if (stripeColor !== undefined) {
+    for (const x of [-0.22, 0, 0.22]) {
+      const stripe = part(new THREE.TorusGeometry(0.385, 0.025, 8, 28), mat(stripeColor), x, 0.6, 0, parent);
+      stripe.rotation.y = Math.PI / 2;
+      stripe.scale.set(1, 0.9, 1);
+    }
+  }
+}
+
 const wardrobe = [
+  {
+    label: '👕 Tröja',
+    parent: dog,
+    options: [
+      ['Röd', (g) => sweater(g, 0xe63946)],
+      ['Randig', (g) => sweater(g, 0x2a6bff, 0xffffff)],
+      ['Rosa', (g) => sweater(g, 0xff8fc7, 0xffffff)],
+      ['Grön', (g) => sweater(g, 0x2ecc71, 0xffd93d)],
+    ],
+  },
   {
     label: '🎩 Hatt',
     parent: head,
@@ -257,6 +284,21 @@ window.addEventListener('pointermove', (event) => {
 });
 window.addEventListener('pointerup', () => (dragX = null));
 window.addEventListener('pointercancel', () => (dragX = null));
+
+// Hundens namn: skrivs i rutan överst och sparas bara på den här enheten
+const info = document.getElementById('info');
+const nameInput = document.getElementById('name');
+function showName() {
+  const name = nameInput.value.trim();
+  info.textContent = name ? `Klä ut ${name}!` : 'Klä ut hunden!';
+  try { localStorage.setItem('dogName', name); } catch {}
+}
+try { nameInput.value = localStorage.getItem('dogName') || ''; } catch {}
+nameInput.addEventListener('input', showName);
+nameInput.addEventListener('keydown', (event) => {
+  if (event.key === 'Enter') nameInput.blur(); // stäng tangentbordet på mobilen
+});
+showName();
 
 // Anpassa till skärmens storlek, både stående och liggande
 function resize() {
