@@ -1271,6 +1271,7 @@ window.addEventListener('resize', resize);
 resize();
 
 // Spelloopen
+let stridePhase = 0; // var i springsteget hunden är
 const clock = new THREE.Clock();
 renderer.setAnimationLoop(() => {
   const dt = Math.min(clock.getDelta(), 0.05);
@@ -1297,7 +1298,8 @@ renderer.setAnimationLoop(() => {
   }
 
   // Springsteg: kroppen guppar och gungar
-  const stride = running ? Math.sin(time * runSpeed * 2.4) : 0;
+  if (running) stridePhase += runSpeed * 2.4 * dt; // stegen går fortare när farten ökar
+  const stride = running ? Math.sin(stridePhase) : 0;
   upper.position.y = upperBase + (inAir ? 0 : Math.abs(stride) * 0.06);
   dog.rotation.z = running ? (inAir ? 0.18 : stride * 0.07) : 0;
 
@@ -1307,7 +1309,7 @@ renderer.setAnimationLoop(() => {
   if (mode === 'care') updateCare(dt, time);
 
   // Benen svänger: bakbenen och frambenen i otakt, som en galopp. I luften sträcker hunden ut sig.
-  const phase = time * runSpeed * 2.4;
+  const phase = stridePhase;
   hips.forEach((sameLeg, i) => {
     const front = i >= 2;
     let swing = 0;
