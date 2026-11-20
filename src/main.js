@@ -2127,6 +2127,7 @@ function showMode() {
   el('lost').hidden = mode !== 'lost';
   el('care').hidden = mode !== 'care';
   el('park').hidden = mode !== 'park';
+  el('dpad').hidden = mode !== 'park';
   showPark();
   showHud();
   el('hint').textContent = t('Tryck för att hoppa, svep för att byta fil');
@@ -2186,22 +2187,104 @@ function showMode() {
 // I parken träffar man andra hundar. De styrs av spelet, inte av andra spelare.
 const FRIEND_NAMES = ['Bella', 'Molly', 'Charlie', 'Ludde', 'Sigge', 'Doris', 'Morris', 'Wilma', 'Zorro', 'Nala', 'Tusse', 'Ronja', 'Milo', 'Bosse', 'Lova', 'Stina'];
 const MY_SPOT = -0.95; // här står min hund
-const FRIEND_SPOT = 1.05; // hit går den andra hunden
 const parkGroup = group(scene);
 parkGroup.visible = false;
 const LEAVES = mat(0x2fa35a);
-for (const [x, z, size] of [[-4.2, -3.6, 1.2], [3.6, -4.2, 1.4], [0.2, -5.5, 1.1], [-7.5, -5, 1.3], [7.5, -4.6, 1.2]]) {
+const WOOD = mat(0xb5793f);
+// Parken är stor: man kan gå långt åt alla håll, fram till staketet
+const PARK_X = 15; // så långt åt vänster och höger
+const PARK_BACK = -11;
+const PARK_FRONT = 5;
+const parkSolids = []; // sådant man inte kan gå igenom: [x, z, hur stort]
+for (const [x, z, size] of [[-4.2, -3.6, 1.2], [3.6, -4.2, 1.4], [0.2, -5.5, 1.1], [-7.5, -8.5, 1.3], [7.5, -4.6, 1.2], [-11.5, -2.5, 1.3], [11.5, -2, 1.2],
+  [-13, -8.5, 1.4], [13, -8.5, 1.3], [5, -9.3, 1.3], [-3.5, -9.6, 1.2], [0.8, -10.2, 1.1], [-13.6, -5.4, 1.1], [10, -9.8, 1.0]]) {
   part(new THREE.CylinderGeometry(0.16 * size, 0.22 * size, 1.4 * size, 8), TRUNK, x, 0.7 * size, z, parkGroup);
   fluff(0.95 * size, LEAVES, x, 1.9 * size, z, parkGroup);
   fluff(0.65 * size, LEAVES, x + 0.6 * size, 1.5 * size, z + 0.2, parkGroup);
+  parkSolids.push([x, z, 0.4 * size]);
 }
-for (const [x, z] of [[-2.2, -2.6], [2.4, -2.9], [5.2, -2.4], [-5.6, -2.7]]) fluff(0.45, LEAVES, x, 0.3, z, parkGroup);
-// En parkbänk
-const bench = group(parkGroup, -2.9, 0, -2.1);
-const WOOD = mat(0xb5793f);
-part(new THREE.BoxGeometry(1.5, 0.08, 0.45), WOOD, 0, 0.45, 0, bench);
-part(new THREE.BoxGeometry(1.5, 0.4, 0.07), WOOD, 0, 0.8, -0.2, bench);
-for (const x of [-0.6, 0.6]) part(new THREE.BoxGeometry(0.08, 0.45, 0.4), TRUNK, x, 0.22, 0, bench);
+for (const [x, z] of [[-2.2, -2.6], [2.4, -2.9], [5.2, -2.4], [-5.6, -2.7], [-9.5, 3.2], [9, 3.6], [13.5, 1], [-13.8, 0.5], [3, -7], [-10.5, -9.8], [8.2, -8]]) {
+  fluff(0.45, LEAVES, x, 0.3, z, parkGroup);
+  parkSolids.push([x, z, 0.5]);
+}
+for (const [x, z] of [[-2.9, -2.1], [6.2, -6.6], [-10.8, -6.4], [11.2, -5.2]]) { // parkbänkar
+  const bench = group(parkGroup, x, 0, z);
+  part(new THREE.BoxGeometry(1.5, 0.08, 0.45), WOOD, 0, 0.45, 0, bench);
+  part(new THREE.BoxGeometry(1.5, 0.4, 0.07), WOOD, 0, 0.8, -0.2, bench);
+  for (const side of [-0.6, 0.6]) part(new THREE.BoxGeometry(0.08, 0.45, 0.4), TRUNK, side, 0.22, 0, bench);
+  parkSolids.push([x - 0.4, z, 0.5], [x + 0.4, z, 0.5]);
+}
+// Gångar av sand
+const PATH = mat(0xead2a4);
+for (const [x, z, width, depth] of [[0, -0.9, 2 * PARK_X, 1.3], [-6.5, -3, 1.3, PARK_FRONT - PARK_BACK], [8.5, -6, 1.3, 9]]) {
+  const path = part(new THREE.PlaneGeometry(width, depth), PATH, x, 0.012, z, parkGroup);
+  path.rotation.x = -Math.PI / 2;
+  path.castShadow = false;
+  path.receiveShadow = true;
+}
+// Blommor här och där
+const STEM = mat(0x2fa35a);
+[[-4, 2.6], [4.5, 2.2], [-11, 1.6], [11.5, 3.4], [2, -3.4], [-9, -4], [6, -2.2], [-1.5, -7.5], [12.5, -6.8], [-12.5, 4]].forEach(([x, z], n) => {
+  for (let i = 0; i < 4; i++) {
+    const fx = x + Math.cos(i * 1.7 + n) * 0.45;
+    const fz = z + Math.sin(i * 2.3 + n) * 0.35;
+    part(new THREE.CylinderGeometry(0.015, 0.015, 0.26, 5), STEM, fx, 0.13, fz, parkGroup).castShadow = false;
+    fluff(0.07, mat([0xe63946, 0xff8fc7, 0xff9f1c, 0xffd93d][(i + n) % 4]), fx, 0.29, fz, parkGroup).castShadow = false;
+  }
+});
+// En fontän
+const fountain = group(parkGroup, -9, 0, -5.6);
+part(new THREE.CylinderGeometry(1.15, 1.25, 0.35, 24), ROCK, 0, 0.17, 0, fountain);
+part(new THREE.CylinderGeometry(1.0, 1.0, 0.04, 24), WATER, 0, 0.36, 0, fountain);
+part(new THREE.CylinderGeometry(0.14, 0.2, 1.0, 12), ROCK, 0, 0.7, 0, fountain);
+part(new THREE.CylinderGeometry(0.45, 0.2, 0.14, 16), ROCK, 0, 1.22, 0, fountain);
+const drops = [0, 1, 2, 3, 4, 5].map(() => fluff(0.06, WATER, 0, 0, 0, fountain));
+parkSolids.push([-9, -5.6, 1.35]);
+// En filt med picknickkorg
+const picnic = group(parkGroup, 10.6, 0, 0.9);
+part(new THREE.BoxGeometry(1.7, 0.03, 1.2), mat(0xe63946), 0, 0.02, 0, picnic).castShadow = false;
+for (const x of [-0.56, 0, 0.56]) part(new THREE.BoxGeometry(0.2, 0.034, 1.2), WHITE, x, 0.02, 0, picnic).castShadow = false;
+part(new THREE.BoxGeometry(0.45, 0.28, 0.32), WOOD, 0.35, 0.17, -0.2, picnic);
+part(new THREE.TorusGeometry(0.17, 0.025, 6, 14, Math.PI), WOOD, 0.35, 0.3, -0.2, picnic);
+fluff(0.09, mat(0xe63946), -0.35, 0.1, 0.2, picnic); // ett äpple
+parkSolids.push([10.95, 0.7, 0.4]);
+// Lyktor längs gången
+for (const x of [-12, -3.3, 4.8, 12.6]) {
+  part(new THREE.CylinderGeometry(0.05, 0.07, 1.9, 8), mat(0x3a3a48), x, 0.95, -1.9, parkGroup);
+  fluff(0.17, new THREE.MeshBasicMaterial({ color: 0xfff1a8 }), x, 2.0, -1.9, parkGroup);
+  parkSolids.push([x, -1.9, 0.2]);
+}
+// Vitt staket runt hela parken
+for (const z of [PARK_BACK - 0.9, PARK_FRONT + 0.9]) {
+  for (const y of [0.25, 0.58]) part(new THREE.BoxGeometry(2 * PARK_X + 2, 0.08, 0.05), WHITE, 0, y, z, parkGroup);
+  for (let x = -PARK_X - 1; x <= PARK_X + 1; x += 1) part(new THREE.BoxGeometry(0.16, 0.8, 0.06), WHITE, x, 0.4, z, parkGroup);
+}
+for (const x of [-PARK_X - 1, PARK_X + 1]) {
+  for (const y of [0.25, 0.58]) part(new THREE.BoxGeometry(0.05, 0.08, PARK_FRONT - PARK_BACK + 1.8), WHITE, x, y, (PARK_FRONT + PARK_BACK) / 2, parkGroup);
+  for (let z = PARK_BACK - 0.9; z <= PARK_FRONT + 0.9; z += 1) part(new THREE.BoxGeometry(0.06, 0.8, 0.16), WHITE, x, 0.4, z, parkGroup);
+}
+// Håller en hund utanför träd, bänkar och annat som står i vägen
+function keepOut(position, size) {
+  for (const [x, z, radius] of parkSolids) {
+    const dx = position.x - x;
+    const dz = position.z - z;
+    const d = Math.hypot(dx, dz) || 0.01;
+    if (d < radius + size) {
+      position.x = x + (dx / d) * (radius + size);
+      position.z = z + (dz / d) * (radius + size);
+    }
+  }
+  // Dammen är avlång, så den räknas för sig
+  const px = (position.x - 0.1) / (1.25 + size);
+  const pz = (position.z - 1.75) / (0.55 + size);
+  const inside = Math.hypot(px, pz) || 0.01;
+  if (inside < 1) {
+    position.x = 0.1 + (px / inside) * (1.25 + size);
+    position.z = 1.75 + (pz / inside) * (0.55 + size);
+  }
+  position.x = Math.max(-PARK_X, Math.min(PARK_X, position.x));
+  position.z = Math.max(PARK_BACK, Math.min(PARK_FRONT, position.z));
+}
 
 // Djuren i parken: ankor i en damm, en ekorre i trädet och en liten fågel
 const pond = part(new THREE.CylinderGeometry(1, 1, 0.03, 28), WATER, 0.1, 0.02, 1.75, parkGroup);
@@ -2247,6 +2330,10 @@ function updateParkAnimals(time) {
   // Fågeln hoppar omkring i gräset vid bänken
   parkBird.position.set(-2.0 + Math.sin(time * 0.4) * 0.5, Math.abs(Math.sin(time * 5)) * 0.07, -1.2);
   parkBird.rotation.y = Math.cos(time * 0.4) > 0 ? 0 : Math.PI;
+  drops.forEach((drop, i) => {
+    const k = (time * 0.9 + i / 6) % 1; // vattnet i fontänen sprutar upp och faller ner
+    drop.position.set(Math.cos(i * 1.05) * k * 0.7, 1.35 + Math.sin(k * Math.PI) * 0.5 - k * 0.9, Math.sin(i * 1.05) * k * 0.7);
+  });
 }
 
 let friend = null; // den andra hunden: { dog, tail, name, breed, greeted, time }
@@ -2289,16 +2376,19 @@ function newFriend() {
 
   let name = FRIEND_NAMES[Math.floor(Math.random() * FRIEND_NAMES.length)];
   if (name === dogName()) name = 'Kompis';
-  copy.position.set(7, 0, 0.2);
-  copy.rotation.set(0, Math.PI + 0.45, 0);
+  const from = dog.position.x > 8 ? -1 : 1; // kommer från höger, eller från vänster om min hund står långt till höger
+  const spot = { x: dog.position.x + from * 2, z: Math.min(PARK_FRONT, dog.position.z + 0.2) };
+  copy.position.set(spot.x + from * 6, 0, spot.z);
+  copy.rotation.set(0, from > 0 ? Math.PI + 0.45 : -0.3, 0);
   scene.add(copy);
-  friend = { dog: copy, tail: copy.getObjectByName('tail'), materials: [...copies.values()], name, breed: friendBreed, greeted: false, time: 0, hop: 0 };
+  friend = { dog: copy, tail: copy.getObjectByName('tail'), materials: [...copies.values()], name, breed: friendBreed, greeted: false, arrived: false, spot, time: 0, hop: 0 };
   showPark();
 }
 let lastFriendBreed = -1;
 function startPark() {
   strollTo = null;
-  parkCameraX = 0;
+  parkCameraX = MY_SPOT + 0.8;
+  parkCameraZ = 0;
   stopTrying();
   SOUND.pop();
   mode = 'park';
@@ -2316,7 +2406,7 @@ function leavePark() {
   showMode();
 }
 function greet() {
-  if (!friend || friend.greeted || friend.dog.position.x > FRIEND_SPOT + 0.01) return;
+  if (!friend || friend.greeted || !friend.arrived) return;
   friend.greeted = true;
   friend.hop = 1;
   speedY = TAP_SPEED;
@@ -2341,7 +2431,8 @@ function startPlay() {
   if (!friend || !friend.greeted || play) return;
   SOUND.Leka();
   const reach = Math.min(2.2, 1.1 + camera.aspect); // på smal skärm kastas bollen inte lika långt åt sidan
-  play = { phase: 'fly', time: 0, x: (Math.random() * 2 - 1) * reach, z: 0.3, friendSpeed: 2.3 + Math.random() * 1.5 };
+  const x = Math.max(-PARK_X + 1, Math.min(PARK_X - 1, dog.position.x + (Math.random() * 2 - 1) * reach));
+  play = { phase: 'fly', time: 0, from: dog.position.x, x, z: dog.position.z + 0.3, friendSpeed: 2.3 + Math.random() * 1.5 };
   playBall.visible = true;
   showPark();
 }
@@ -2357,17 +2448,17 @@ function trot(d, x, speed, dt, time) {
 }
 function updatePlay(dt, time) {
   if (!play || !friend) return;
-  dog.position.z *= 1 - Math.min(1, dt * 4); // hunden kommer tillbaka till mitten av parken när man leker
   play.time += dt;
   const f = friend.dog;
   if (play.phase === 'fly') {
     // Bollen flyger i en båge från kameran och landar i gräset
     const k = Math.min(1, play.time / 0.8);
-    playBall.position.set(play.x * k, 0.14 + Math.sin(k * Math.PI) * 1.8 + (1 - k) * 0.6, 3.5 + (play.z - 3.5) * k);
+    playBall.position.set(play.from + (play.x - play.from) * k, 0.14 + Math.sin(k * Math.PI) * 1.8 + (1 - k) * 0.6, play.z + 3.2 * (1 - k));
     if (k === 1) play.phase = 'chase';
   } else if (play.phase === 'chase') {
     const mine = trot(dog, play.x - 0.65, 3, dt, time);
     const theirs = trot(f, play.x + 0.65, play.friendSpeed, dt, time);
+    f.position.z += (play.z - 0.2 - f.position.z) * Math.min(1, dt * 3); // kompisen springer in på samma rad som bollen
     if (mine || theirs) {
       // Den som kom först tog bollen
       play.phase = 'back';
@@ -2381,22 +2472,16 @@ function updatePlay(dt, time) {
       else friend.hop = 1;
     }
   } else {
-    // Bollen studsar upp och hundarna går tillbaka till sina platser
+    // Bollen studsar upp, och sedan är leken slut
     playBall.position.y = 0.14 + Math.abs(Math.sin(play.time * 6)) * Math.max(0, 0.9 - play.time);
     if (play.time < 0.9) {
       if (!play.mine) f.position.y = Math.sin(Math.min(1, play.time / 0.6) * Math.PI) * 0.7;
       return;
     }
     playBall.visible = false;
-    const mine = trot(dog, MY_SPOT, 3, dt, time);
-    const theirs = trot(f, FRIEND_SPOT, 3, dt, time);
-    if (mine && theirs) {
-      dog.rotation.y = TOWARD_RIGHT;
-      f.rotation.y = Math.PI + 0.45;
-      f.position.y = 0;
-      play = null;
-      showPark();
-    }
+    f.position.y = 0;
+    play = null;
+    showPark();
   }
 }
 // Promenera i parken: piltangenterna (eller W A S D) styr hunden, eller så trycker man i gräset
@@ -2412,6 +2497,12 @@ window.addEventListener('blur', () => keysDown.clear());
 const held = (...codes) => (codes.some((code) => keysDown.has(code)) ? 1 : 0);
 let strolling = false; // sant medan hunden går, så att benen rör sig
 let parkCameraX = 0;
+let parkCameraZ = 0;
+// Pilknapparna på skärmen fungerar som piltangenterna: håll in för att gå
+for (const b of document.querySelectorAll('#dpad button')) {
+  b.addEventListener('pointerdown', () => { if (mode === 'park') keysDown.add(b.dataset.code); });
+  for (const type of ['pointerup', 'pointerleave', 'pointercancel']) b.addEventListener(type, () => keysDown.delete(b.dataset.code));
+}
 function updateStroll(dt) {
   strolling = false;
   if (mode !== 'park' || play) {
@@ -2428,9 +2519,10 @@ function updateStroll(dt) {
     if (Math.hypot(dx, dz) < 0.08) { strollTo = null; return; }
   } else return;
   const length = Math.hypot(dx, dz);
-  const step = Math.min(2.6 * dt, strollTo ? length : 9);
-  dog.position.x = Math.max(-4.2, Math.min(4.6, dog.position.x + (dx / length) * step));
-  dog.position.z = Math.max(-1.8, Math.min(0.9, dog.position.z + (dz / length) * step)); // inte in i träden eller ner i dammen
+  const step = Math.min(3.2 * dt, strollTo ? length : 9);
+  dog.position.x += (dx / length) * step;
+  dog.position.z += (dz / length) * step;
+  keepOut(dog.position, 0.4 * breed.size); // inte in i träd, bänkar, dammen eller staketet
   dog.rotation.y = Math.atan2(-dz, dx);
   strolling = true;
   if (friend) {
@@ -2449,7 +2541,7 @@ function updateStroll(dt) {
 // Hundgodis: kostar hundben, och kompisen blir jätteglad
 const TREAT_PRICE = 2;
 function giveTreat() {
-  if (!friend || play || bones < TREAT_PRICE || friend.dog.position.x > FRIEND_SPOT + 0.01) return;
+  if (!friend || play || bones < TREAT_PRICE || !friend.arrived) return;
   bones -= TREAT_PRICE;
   try { localStorage.setItem('bones', bones); } catch {}
   stats.treats = (stats.treats || 0) + 1;
@@ -2466,9 +2558,8 @@ function showPark() {
   el('parkButton').textContent = '🌳 ' + t('Hundparken');
   el('agilityButton').textContent = '🏅 Agility';
   if (!friend) return;
-  const here = friend.dog.position.x <= FRIEND_SPOT + 0.01;
-  el('parkTitle').textContent = '🌳 ' + t('Hundparken');
-  el('parkHint').textContent = t('Gå med piltangenterna eller tryck i gräset');
+  const here = friend.arrived;
+  el('dpad').style.bottom = el('park').offsetHeight + 10 + 'px'; // pilknapparna sitter precis ovanför panelen
   el('parkText').textContent = !here ? t('Titta, där kommer en hund!') : `${friend.name} · ${t(friend.breed.name)}`;
   el('parkCount').textContent = '💗 ' + t('Hundkompisar') + ': ' + (stats.friends || 0);
   el('greet').textContent = (friend.greeted ? '✓ ' : '👋 ') + t('Hälsa');
@@ -2493,11 +2584,13 @@ function updatePark(dt, time) {
   if (!friend) return;
   const d = friend.dog;
   friend.time += dt;
-  if (d.position.x > FRIEND_SPOT) {
+  if (!friend.arrived) {
     // Hunden skuttar in i parken
-    d.position.x = Math.max(FRIEND_SPOT, d.position.x - 3.2 * dt);
+    const left = friend.spot.x - d.position.x;
+    d.position.x += Math.sign(left) * Math.min(Math.abs(left), 3.2 * dt);
     d.position.y = Math.abs(Math.sin(friend.time * 9)) * 0.22;
-    if (d.position.x === FRIEND_SPOT) {
+    if (Math.abs(left) < 0.02) {
+      friend.arrived = true;
       d.position.y = 0;
       SOUND.bark();
       friendSays(t('Hej! Jag heter {n}').replace('{n}', friend.name));
@@ -2509,6 +2602,18 @@ function updatePark(dt, time) {
     // Ett glatt hopp när man hälsar
     friend.hop = Math.max(0, friend.hop - dt * 1.6);
     d.position.y = Math.sin((1 - friend.hop) * Math.PI) * (friend.hop > 0 ? 0.7 : 0);
+    // En hund man har hälsat på följer med på promenaden
+    const dx = dog.position.x - d.position.x;
+    const dz = dog.position.z - d.position.z;
+    const away = Math.hypot(dx, dz);
+    if (friend.greeted && away > 1.9) {
+      const step = Math.min(away - 1.9, 3 * dt);
+      d.position.x += (dx / away) * step;
+      d.position.z += (dz / away) * step;
+      keepOut(d.position, 0.4 * friend.breed.size);
+      d.rotation.y = Math.atan2(-dz, dx);
+      if (friend.hop === 0) d.position.y = Math.abs(Math.sin(time * 11)) * 0.18;
+    }
   }
   if (friend.tail) friend.tail.rotation.x = Math.sin(time * (friend.greeted ? 22 : 11) + 1) * 0.6;
   if (friendBubble.hidden) return;
@@ -2609,8 +2714,8 @@ soundButton.addEventListener('click', () => {
 if (location.hash.startsWith('#park')) { // testläge: hundparken, #park2 = efter att man har hälsat
   startScreen.hidden = true;
   startPark();
-  friend.dog.position.x = FRIEND_SPOT + 0.001;
-  if (location.hash === '#park5') { strollTo = { x: 2.5, z: -1.2 }; for (let i = 0; i < 40; i++) updateStroll(0.05); parkCameraX = (dog.position.x - MY_SPOT) * 0.45; }
+  friend.dog.position.x = friend.spot.x + 0.001;
+  if (location.hash === '#park5') { strollTo = { x: -7, z: -3.5 }; for (let i = 0; i < 60; i++) updateStroll(0.05); parkCameraX = dog.position.x + 0.8; parkCameraZ = dog.position.z; }
   else if (location.hash !== '#park') setTimeout(greet, 300);
   if (location.hash.startsWith('#park3')) { // #park34 = leken efter 40 små tidssteg
     setTimeout(() => {
@@ -2753,10 +2858,15 @@ renderer.setAnimationLoop(() => {
     const caring = mode === 'care' || mode === 'park';
     const low = lift + (caring ? 0.55 : 0);
     // I parken följer kameran med lite åt sidan när hunden går
-    parkCameraX += ((mode === 'park' ? (dog.position.x - MY_SPOT) * 0.45 : 0) - parkCameraX) * Math.min(1, dt * 3);
-    const side = mode === 'care' ? 0.4 : mode === 'park' ? parkCameraX : 0;
-    camera.position.set(side, cameraY + 1 - low, dressZ + (caring ? 1.3 : 0));
-    camera.lookAt(side, cameraY - low, 0);
+    if (mode === 'park') {
+      parkCameraX += (dog.position.x + 0.8 - parkCameraX) * Math.min(1, dt * 3);
+      parkCameraZ += (dog.position.z - parkCameraZ) * Math.min(1, dt * 3);
+    } else {
+      parkCameraX = parkCameraZ = 0;
+    }
+    const side = mode === 'care' ? 0.4 : parkCameraX;
+    camera.position.set(side, cameraY + 1 - low, parkCameraZ + dressZ + (caring ? 1.3 : 0));
+    camera.lookAt(side, cameraY - low, parkCameraZ);
   }
   updateLeash();
   updateBubble(dt);

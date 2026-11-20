@@ -255,7 +255,17 @@
         border: 4px solid #2a1458; box-shadow: 0 6px 0 #ff5fa2; pointer-events: none;
         font-size: clamp(18px, 5vw, 26px); font-weight: 700;
       }
-      #parkHint { font-size: clamp(13px, 3.5vw, 16px) !important; opacity: 0.85; }
+      #park { gap: 6px; padding-top: 8px; }
+      #park p { font-size: clamp(14px, 3.8vw, 18px); }
+      #parkText { color: #ffd93d; }
+      #parkButtons { gap: 6px; }
+      #parkButtons button { font-size: clamp(14px, 3.9vw, 19px); padding: 7px 12px; }
+      #dpad { position: fixed; left: 10px; z-index: 2; display: grid; grid-template: repeat(3, 50px) / repeat(3, 50px); gap: 3px; }
+      #dpad button {
+        padding: 0; font-size: 26px; background: rgba(255, 217, 61, 0.92); border: 3px solid #2a1458; border-radius: 14px;
+        box-shadow: 0 3px 0 #ff5fa2; cursor: pointer; touch-action: none; user-select: none; -webkit-user-select: none; -webkit-tap-highlight-color: transparent;
+      }
+      #dpad button:active { transform: translateY(3px); box-shadow: none; }
       #swim { position: fixed; top: max(12px, env(safe-area-inset-top)); left: 0; right: 0; z-index: 2; display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: center; pointer-events: none; }
       #swim button { pointer-events: auto; }
       #swimTitle { color: #fff; font-size: clamp(24px, 6.5vw, 34px); font-weight: 700; -webkit-text-stroke: 5px #2a1458; paint-order: stroke fill; }
@@ -323,10 +333,7 @@
       <div id="swimHint"></div>
     </div>
     <div id="park" class="panel" hidden>
-      <h2 id="parkTitle"></h2>
-      <p id="parkText"></p>
-      <p id="parkHint"></p>
-      <p><span id="parkCount"></span> &nbsp; <span id="parkBones"></span></p>
+      <p><b id="parkText"></b> &nbsp; <span id="parkCount"></span> &nbsp; <span id="parkBones"></span></p>
       <div id="parkButtons">
         <button id="greet" class="go"></button>
         <button id="playButton" class="go" hidden></button>
@@ -335,6 +342,12 @@
         <button id="agilityButton" class="plain"></button>
         <button id="parkHome" class="plain"></button>
       </div>
+    </div>
+    <div id="dpad" hidden>
+      <button data-code="ArrowUp" aria-label="Upp" style="grid-area: 1 / 2">⬆️</button>
+      <button data-code="ArrowLeft" aria-label="Vänster" style="grid-area: 2 / 1">⬅️</button>
+      <button data-code="ArrowRight" aria-label="Höger" style="grid-area: 2 / 3">➡️</button>
+      <button data-code="ArrowDown" aria-label="Ner" style="grid-area: 3 / 2">⬇️</button>
     </div>
     <div id="friendBubble" hidden></div>
     <div id="medals" class="popup" hidden>
