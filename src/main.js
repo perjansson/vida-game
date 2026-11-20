@@ -2312,7 +2312,9 @@ function greet() {
   SOUND.bark();
   SOUND.happy();
   burst('💗');
-  sayOneOf('Voff voff!', 'Vill du leka?', 'Hej kompis!');
+  // Min hund säger vad den heter, om man har gett den ett namn
+  if (dogName()) say(t('Hej! Jag heter {n}').replace('{n}', dogName()));
+  else sayOneOf('Voff voff!', 'Vill du leka?', 'Hej kompis!');
   friendSays(t('Vi är kompisar nu!'));
   stats.friends = (stats.friends || 0) + 1;
   checkMedals();
