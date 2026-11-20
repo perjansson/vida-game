@@ -35,6 +35,7 @@ const TEXTS = {
     'Bra sprunget!': 'Hyvin juostu!', 'Samla ben och köp hundar, kläder och leksaker': 'Kerää luita ja osta koiria, vaatteita ja leluja',
     'Golden': 'Kultainennoutaja',
     'Börja om från bana 1': 'Aloita alusta radalta 1', 'Säker? Tryck igen för att börja om': 'Varmasti? Paina uudelleen',
+    'Matta': 'Matto', 'Blommor': 'Kukat', 'Ballonger': 'Ilmapallot', 'Korg': 'Kori', 'Träd': 'Puu', 'Hundkoja': 'Koirankoppi',
     'Promenad': 'Kävely', 'Gå på promenad som belöning': 'Palkinnoksi pääset kävelylle',
     'Köp': 'Osta', 'spring fler banor!': 'juokse lisää ratoja!', 'Boll': 'Pallo', 'Leka': 'Leiki', 'Nu behöver hunden lite omsorg': 'Nyt koira tarvitsee hoivaa',
     'Hunden är glad igen!': 'Koira on taas iloinen!',
@@ -72,6 +73,7 @@ const TEXTS = {
     'Bra sprunget!': 'Well run!', 'Samla ben och köp hundar, kläder och leksaker': 'Collect bones and buy dogs, clothes and toys',
     'Golden': 'Golden retriever',
     'Börja om från bana 1': 'Start over from level 1', 'Säker? Tryck igen för att börja om': 'Sure? Tap again to start over',
+    'Matta': 'Rug', 'Blommor': 'Flowers', 'Ballonger': 'Balloons', 'Korg': 'Basket', 'Träd': 'Tree', 'Hundkoja': 'Dog house',
     'Promenad': 'Walk', 'Gå på promenad som belöning': 'Go for a walk as a reward',
     'Köp': 'Buy', 'spring fler banor!': 'run more levels!', 'Boll': 'Ball', 'Nalle': 'Teddy', 'Leka': 'Play', 'Nu behöver hunden lite omsorg': 'Now the dog needs some care',
     'Hunden är glad igen!': 'The dog is happy again!',
@@ -137,7 +139,8 @@ const SOUND = {
 
 // Scen, kamera och renderare
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x1b1035);
+const HOME_SKY = 0x9fdcff; // ljusblå himmel hemma i trädgården
+scene.background = new THREE.Color(HOME_SKY);
 
 const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 200);
 let cameraY = 1;
@@ -158,8 +161,8 @@ scene.add(sun.target); // så att solen kan följa med hunden på banan
 
 // Mark
 const ground = new THREE.Mesh(
-  new THREE.CircleGeometry(6, 48),
-  new THREE.MeshStandardMaterial({ color: 0x3b2a6b })
+  new THREE.CircleGeometry(40, 48),
+  new THREE.MeshStandardMaterial({ color: 0x7fd36b, roughness: 1 }) // gräsmatta
 );
 ground.rotation.x = -Math.PI / 2;
 ground.receiveShadow = true;
@@ -169,6 +172,7 @@ scene.add(ground);
 const starMaterial = new THREE.MeshBasicMaterial({ color: 0xfff3b0 });
 const starGeometry = new THREE.SphereGeometry(0.06, 6, 6);
 const stars = new THREE.Group();
+stars.visible = false; // stjärnorna syns bara på rymdbanan
 scene.add(stars);
 for (let i = 0; i < 80; i++) {
   const star = new THREE.Mesh(starGeometry, starMaterial);
@@ -349,6 +353,7 @@ const PRICE = {
   Strumpor: 10, 'Stövlar': 20,
   'Ryggsäck': 20, Mantel: 30, Vingar: 40,
   Boll: 10, Frisbee: 15, Nalle: 30,
+  Matta: 15, Blommor: 10, Ballonger: 20, Korg: 25, 'Träd': 30, Hundkoja: 60, // saker till hemmet
   Mops: 30, Pudel: 40, Golden: 50, Chihuahua: 50, Dalmatiner: 60, Husky: 80, // hundar
 };
 let bones = 0; // alla ben man har tjänat
@@ -527,6 +532,8 @@ function wear(kind, choice, color) {
 function stopTrying() {
   if (tryOn) wear(tryOn.kind, -1); // ta av det man bara provade
   tryOn = null;
+  tryHome = null;
+  showHome();
   if (breedIndex !== myBreed) { // byt tillbaka från en hund man bara tittade på
     breedIndex = myBreed;
     showBreed();
@@ -624,13 +631,84 @@ function showBreed() {
 }
 showBreed();
 
+// ---------- Hemmet ----------
+// Hunden bor i en trädgård med staket. Sakerna i HOME köper man för hundben och ställer ut.
+const homeGroup = group(scene);
+const WHITE = mat(0xffffff);
+for (let x = -9; x <= 9; x += 0.5) part(new THREE.BoxGeometry(0.16, 0.8, 0.05), WHITE, x, 0.4, -2.9, homeGroup); // staket
+for (const y of [0.25, 0.58]) part(new THREE.BoxGeometry(18.5, 0.08, 0.04), WHITE, 0, y, -2.93, homeGroup);
+
+const HOME = [
+  ['Matta', (g) => {
+    for (const [radius, color, y] of [[1.3, 0xff8fc7, 0.01], [1.05, 0xffd93d, 0.015], [0.8, 0xff8fc7, 0.02]]) {
+      const rug = part(new THREE.CylinderGeometry(radius, radius, 0.02, 32), mat(color), 0, y, 0, g);
+      rug.scale.z = 0.7;
+      rug.castShadow = false;
+      rug.receiveShadow = true;
+    }
+  }],
+  ['Blommor', (g) => {
+    const colors = [0xe63946, 0xffd93d, 0xff8fc7, 0x7b3fd1, 0xffffff, 0xff9f1c];
+    [-2.7, -2.2, -0.35, 0.2, 0.8, 2.4, 2.9, 3.4].forEach((x, i) => {
+      const height = 0.35 + (i % 3) * 0.08;
+      part(new THREE.CylinderGeometry(0.02, 0.02, height, 6), mat(0x2e9e4f), x, height / 2, -2.55, g);
+      fluff(0.11, mat(colors[i % colors.length]), x, height, -2.55, g);
+      fluff(0.05, mat(0xffd93d), x, height, -2.46, g);
+    });
+  }],
+  ['Ballonger', (g) => {
+    [[-0.3, 1.75, 0xe63946], [0, 2.1, 0xffd93d], [0.3, 1.8, 0x2a9dff]].forEach(([dx, y, color]) => {
+      const from = new THREE.Vector3(0.55, 0.8, -2.9);
+      const to = new THREE.Vector3(0.55 + dx, y, -2.9);
+      const string = part(new THREE.CylinderGeometry(0.01, 0.01, 1, 5), WHITE, 0, 0, 0, g);
+      string.position.copy(from).lerp(to, 0.5);
+      string.scale.y = from.distanceTo(to);
+      string.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), to.clone().sub(from).normalize());
+      fluff(0.22, mat(color), to.x, to.y + 0.22, to.z, g).scale.y = 0.27;
+    });
+  }],
+  ['Korg', (g) => { // en mjuk hundkorg att sova i
+    const basket = group(g, 1.3, 0, -1.4);
+    part(new THREE.TorusGeometry(0.42, 0.13, 10, 24), mat(0xb5793f), 0, 0.13, 0, basket).rotation.x = Math.PI / 2;
+    fluff(1, mat(0xff8fc7), 0, 0.1, 0, basket).scale.set(0.4, 0.1, 0.4);
+  }],
+  ['Träd', (g) => {
+    const tree = group(g, 2.0, 0, -3.6);
+    part(new THREE.CylinderGeometry(0.16, 0.22, 1.6, 8), mat(0x7a4a2a), 0, 0.8, 0, tree);
+    fluff(0.85, mat(0x2e9e4f), 0, 2.1, 0, tree);
+    fluff(0.6, mat(0x3fb95f), 0.2, 2.9, 0.1, tree);
+    for (const [x, y, z] of [[-0.5, 2.0, 0.6], [0.4, 2.4, 0.6], [0, 1.7, 0.75]]) fluff(0.09, mat(0xe63946), x, y, z, tree); // äpplen
+  }],
+  ['Hundkoja', (g) => {
+    const house = group(g, -1.4, 0, -2.0);
+    house.rotation.y = 0.3;
+    part(new THREE.BoxGeometry(1.0, 0.8, 1.0), mat(0xe63946), 0, 0.4, 0, house);
+    part(new THREE.ConeGeometry(0.88, 0.6, 4), mat(0x2a4a8a), 0, 1.1, 0, house).rotation.y = Math.PI / 4;
+    part(new THREE.CylinderGeometry(0.26, 0.26, 0.02, 20), BLACK, 0, 0.36, 0.5, house).rotation.x = Math.PI / 2; // dörr
+    part(new THREE.BoxGeometry(0.52, 0.36, 0.02), BLACK, 0, 0.18, 0.5, house);
+    fluff(0.06, mat(0xffd93d), 0, 0.72, 0.5, house); // liten skylt
+  }],
+];
+const homeItems = {};
+for (const [name, build] of HOME) {
+  homeItems[name] = group(homeGroup);
+  build(homeItems[name]);
+}
+const placed = new Set(); // sakerna som står framme
+try { for (const name of JSON.parse(localStorage.getItem('home')) || []) if (have(name)) placed.add(name); } catch {}
+let tryHome = null; // en sak man tittar på men inte har köpt än
+function showHome() {
+  for (const [name] of HOME) homeItems[name].visible = placed.has(name) || tryHome === name;
+}
+showHome();
+
 // ---------- Garderoben ----------
 // Flikarna längst ner väljer vad man klär på. Ovanför visas alla plagg och färger.
 const COLORS = [0xe63946, 0xff8fc7, 0xff9f1c, 0xffd93d, 0x2ecc71, 0x2a9dff, 0x7b3fd1, 0xffffff];
 const chipsBar = document.getElementById('chips');
 const colorsBar = document.getElementById('colors');
 const tabsBar = document.getElementById('tabs');
-const tabs = [{ icon: '🐶' }, ...wardrobe]; // första fliken är hundtyp
+const tabs = [{ icon: '🐶' }, ...wardrobe, { icon: '🏠', home: true }]; // första fliken är hundtyp, sista är hemmet
 let activeTab = 0;
 
 function hop() {
@@ -654,7 +732,7 @@ function showWardrobe() {
   chipsBar.textContent = '';
   colorsBar.textContent = '';
   const kind = tabs[activeTab];
-  if ((tryOn && tryOn.kind !== kind) || (activeTab !== 0 && breedIndex !== myBreed)) stopTrying();
+  if ((tryOn && tryOn.kind !== kind) || (activeTab !== 0 && breedIndex !== myBreed) || (tryHome && !kind.home)) stopTrying();
   if (activeTab === 0) {
     BREEDS.forEach((b, i) => {
       const price = PRICE[b.name];
@@ -675,6 +753,31 @@ function showWardrobe() {
         button(chipsBar, 'chip poor', `🦴${price} – ${t('spring fler banor!')}`, false, () => SOUND.hit());
       }
     });
+  } else if (kind.home) {
+    for (const [name] of HOME) {
+      const price = PRICE[name];
+      if (have(name)) {
+        // Saker man äger kan man ställa fram eller plocka undan
+        button(chipsBar, 'chip', t(name), placed.has(name), () => {
+          stopTrying();
+          placed.has(name) ? placed.delete(name) : placed.add(name);
+          try { localStorage.setItem('home', JSON.stringify([...placed])); } catch {}
+          showHome();
+        });
+      } else if (tryHome !== name) {
+        button(chipsBar, 'chip locked', `🔒 ${t(name)} 🦴${price}`, false, () => { stopTrying(); tryHome = name; showHome(); });
+      } else if (bones >= price) {
+        button(chipsBar, 'chip buy', `${t('Köp')} ${t(name)}? 🦴${price}`, false, () => {
+          tryHome = null;
+          pay(name);
+          placed.add(name);
+          try { localStorage.setItem('home', JSON.stringify([...placed])); } catch {}
+          showHome();
+        });
+      } else {
+        button(chipsBar, 'chip poor', `🦴${price} – ${t('spring fler banor!')}`, false, () => SOUND.hit());
+      }
+    }
   } else {
     button(chipsBar, 'chip', '✖ ' + t('ingen'), kind.choice < 0, () => { stopTrying(); wear(kind, -1); saveOutfit(); });
     kind.options.forEach(([name], i) => {
@@ -1140,9 +1243,9 @@ function updateRun(dt, time) {
 }
 
 function goHome() {
-  scene.background.setHex(NIGHT);
+  scene.background.setHex(HOME_SKY);
   ground.visible = true;
-  stars.visible = true;
+  stars.visible = false;
   runWorld.visible = false;
   dog.visible = true;
   dog.position.set(0, 0, 0);
@@ -1396,6 +1499,8 @@ if (test) {
   breedIndex = Number(test[1]) % BREEDS.length;
   showBreed();
   if (test[2]) activeTab = 1;
+  if (test[2]) for (const [name] of HOME) placed.add(name);
+  showHome();
   if (test[2]) for (const kind of wardrobe) wear(kind, Math.min(Number(test[2]), kind.items.length - 1));
   showWardrobe();
 }
@@ -1434,7 +1539,7 @@ resetButton.addEventListener('click', () => {
     return;
   }
   try {
-    for (const key of ['level', 'bones', 'owned', 'outfit']) localStorage.removeItem(key);
+    for (const key of ['level', 'bones', 'owned', 'outfit', 'home', 'breed']) localStorage.removeItem(key);
   } catch {}
   location.hash = '';
   location.reload();
@@ -1536,6 +1641,7 @@ renderer.setAnimationLoop(() => {
     camera.lookAt(caring ? 0.4 : 0, cameraY - low, 0);
   }
   updateLeash();
+  homeGroup.visible = mode === 'dress' || mode === 'care';
   toyGroup.visible = mode === 'dress' || mode === 'care';
   toyGroup.rotation.y = dog.rotation.y;
   stars.position.x = camera.position.x;
