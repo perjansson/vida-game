@@ -1148,7 +1148,7 @@ function addBone(x, y, z) {
 // Farten ökar hela tiden under banan: ju längre man har sprungit, desto fortare går det
 let startSpeed = 5;
 function speedAt(x) {
-  if (walking) return 3.4; // promenadtakt
+  if (walking) return 4.8; // promenadtakt
   return Math.min(startSpeed + x * 0.02, startSpeed * 1.6, 12.5);
 }
 
