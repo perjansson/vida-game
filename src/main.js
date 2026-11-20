@@ -29,7 +29,7 @@ const TEXTS = {
     'Välj hund och kläder längst ner': 'Valitse koira ja vaatteet alhaalta',
     'Spring banor och hoppa över hinder': 'Juokse ratoja ja hyppää esteiden yli',
     'Ta hand om hunden efter varje bana': 'Hoida koiraa jokaisen radan jälkeen',
-    'Spring bana {n}!': 'Juokse rata {n}!', 'Bana {n}': 'Rata {n}', 'Tryck för att hoppa!': 'Hyppää napauttamalla!', 'Hoppa': 'Hyppää',
+    'Spring bana {n}!': 'Juokse rata {n}!', 'Bana {n}': 'Rata {n}', 'Tryck för att hoppa, svep för att byta fil': 'Napauta hypätäksesi, pyyhkäise vaihtaaksesi kaistaa', 'Hoppa': 'Hyppää',
     'Oj då!': 'Hups!', 'Hunden snubblade. Försök igen!': 'Koira kompastui. Yritä uudelleen!',
     'Försök igen': 'Yritä uudelleen', 'Garderoben': 'Vaatekaappi',
     'Bra sprunget!': 'Hyvin juostu!', 'Samla ben och köp kläder och leksaker': 'Kerää luita ja osta vaatteita ja leluja',
@@ -64,7 +64,7 @@ const TEXTS = {
     'Välj hund och kläder längst ner': 'Choose a dog and clothes at the bottom',
     'Spring banor och hoppa över hinder': 'Run levels and jump over obstacles',
     'Ta hand om hunden efter varje bana': 'Take care of the dog after each level',
-    'Spring bana {n}!': 'Run level {n}!', 'Bana {n}': 'Level {n}', 'Tryck för att hoppa!': 'Tap to jump!', 'Hoppa': 'Jump',
+    'Spring bana {n}!': 'Run level {n}!', 'Bana {n}': 'Level {n}', 'Tryck för att hoppa, svep för att byta fil': 'Tap to jump, swipe to change lane', 'Hoppa': 'Jump',
     'Oj då!': 'Oops!', 'Hunden snubblade. Försök igen!': 'The dog tripped. Try again!',
     'Försök igen': 'Try again', 'Garderoben': 'Wardrobe',
     'Bra sprunget!': 'Well run!', 'Samla ben och köp kläder och leksaker': 'Collect bones and buy clothes and toys',
@@ -718,7 +718,11 @@ let speedY = 0; // hundens fart uppåt (minus betyder nedåt)
 const raycaster = new THREE.Raycaster();
 const pointer = new THREE.Vector2();
 renderer.domElement.addEventListener('pointerdown', (event) => {
-  if (mode === 'run') return jump(); // på banan hoppar hunden var man än trycker
+  if (mode === 'run') {
+    // På banan: vänta och se om det blir ett svep (byt fil) eller ett vanligt tryck (hoppa)
+    swipe = { x: event.clientX, y: event.clientY, used: false };
+    return;
+  }
   pointer.x = (event.clientX / window.innerWidth) * 2 - 1;
   pointer.y = -(event.clientY / window.innerHeight) * 2 + 1;
   raycaster.setFromCamera(pointer, camera);
@@ -729,6 +733,28 @@ renderer.domElement.addEventListener('pointerdown', (event) => {
   }
   dragX = event.clientX;
 });
+
+// Svep på banan: åt sidan byter fil, uppåt hoppar. Ett tryck utan svep hoppar också.
+let swipe = null;
+const SWIPE = 28; // så många pixlar måste fingret flytta sig för att det ska räknas som ett svep
+window.addEventListener('pointermove', (event) => {
+  if (!swipe || mode !== 'run') return;
+  const dx = event.clientX - swipe.x;
+  const dy = event.clientY - swipe.y;
+  if (Math.abs(dx) > SWIPE && Math.abs(dx) > Math.abs(dy)) {
+    changeLane(Math.sign(dx));
+  } else if (dy < -SWIPE && Math.abs(dy) > Math.abs(dx)) {
+    jump();
+  } else {
+    return;
+  }
+  swipe = { x: event.clientX, y: event.clientY, used: true }; // man kan svepa vidare utan att lyfta fingret
+});
+window.addEventListener('pointerup', () => {
+  if (swipe && !swipe.used) jump();
+  swipe = null;
+});
+window.addEventListener('pointercancel', () => (swipe = null));
 
 // Dra med fingret eller musen för att snurra på hunden
 let dragX = null;
@@ -1209,7 +1235,7 @@ function showMode() {
   el('lost').hidden = mode !== 'lost';
   el('care').hidden = mode !== 'care';
   showHud();
-  el('hint').textContent = t('Tryck för att hoppa!');
+  el('hint').textContent = t('Tryck för att hoppa, svep för att byta fil');
   el('runButton').textContent = '🏃 ' + t('Spring bana {n}!').replace('{n}', level);
   el('lostTitle').textContent = t('Oj då!');
   el('lostText').textContent = t('Hunden snubblade. Försök igen!');
