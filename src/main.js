@@ -76,6 +76,7 @@ const TEXTS = {
     'Tofs': 'Töyhtö', 'Tuppkam': 'Irokeesi', 'Lockar': 'Kiharat', 'Flätor': 'Letit',
     'Kalas': 'Juhlat', 'Hurra, jag fyller år!': 'Hurraa, minulla on synttärit!', 'Tack för kalaset!': 'Kiitos juhlista!', 'Vilken bana!': 'Mikä rata!', 'Agilitystjärna': 'Agilitytähti', 'Spring agilitybanan i parken': 'Juokse agilityrata puistossa',
     'Gå med piltangenterna eller tryck i gräset': 'Kävele nuolinäppäimillä tai napauta ruohoa',
+    'Nu åker jag!': 'Nyt mennään!', 'Högre!': 'Korkeammalle!', 'Wiii!': 'Jiihaa!', 'Lekplatsproffs': 'Leikkipuiston mestari', 'Åk rutschkana eller gunga i parken': 'Laske liukumäkeä tai keinu puistossa',
     'Jag tog den!': 'Sain sen!', 'Hundkompis': 'Koirakaveri', 'Hälsa på fem hundar i parken': 'Tervehdi viittä koiraa puistossa',
   },
   en: {
@@ -140,6 +141,7 @@ const TEXTS = {
     'Tofs': 'Ponytail', 'Tuppkam': 'Mohawk', 'Lockar': 'Curls', 'Flätor': 'Braids',
     'Kalas': 'Party', 'Hurra, jag fyller år!': "Hooray, it's my birthday!", 'Tack för kalaset!': 'Thanks for the party!', 'Vilken bana!': 'What a course!', 'Agilitystjärna': 'Agility star', 'Spring agilitybanan i parken': 'Run the agility course in the park',
     'Gå med piltangenterna eller tryck i gräset': 'Walk with the arrow keys or tap the grass',
+    'Nu åker jag!': 'Here I go!', 'Högre!': 'Higher!', 'Wiii!': 'Wheee!', 'Lekplatsproffs': 'Playground pro', 'Åk rutschkana eller gunga i parken': 'Ride the slide or the swing in the park',
     'Jag tog den!': 'I got it!', 'Hundkompis': 'Dog friend', 'Hälsa på fem hundar i parken': 'Say hi to five dogs in the park',
   },
 };
@@ -1030,6 +1032,7 @@ const MEDALS = [
   ['🏠', 'Hemmafixare', 'Ha tre saker i trädgården', () => placed.size >= 3],
   ['😴', 'Sjusovare', 'Låt hunden sova i korgen', () => stats.sleeps > 0],
   ['🏆', 'Mästare', 'Kom till bana 6', () => level >= 6],
+  ['🛝', 'Lekplatsproffs', 'Åk rutschkana eller gunga i parken', () => stats.rides > 0],
   ['🏅', 'Agilitystjärna', 'Spring agilitybanan i parken', () => stats.agility > 0],
   ['🏊', 'Simmare', 'Simma i havet', () => stats.swims > 0],
   ['🍪', 'Godisgivare', 'Ge godis till tre hundar', () => stats.treats >= 3],
@@ -2196,7 +2199,7 @@ const PARK_X = 15; // så långt åt vänster och höger
 const PARK_BACK = -11;
 const PARK_FRONT = 5;
 const parkSolids = []; // sådant man inte kan gå igenom: [x, z, hur stort]
-for (const [x, z, size] of [[-4.2, -3.6, 1.2], [3.6, -4.2, 1.4], [0.2, -5.5, 1.1], [-7.5, -8.5, 1.3], [7.5, -4.6, 1.2], [-11.5, -2.5, 1.3], [11.5, -2, 1.2],
+for (const [x, z, size] of [[-4.2, -3.6, 1.2], [3.6, -4.2, 1.4], [0.2, -5.5, 1.1], [-7.5, -8.5, 1.3], [7.5, -4.6, 1.2], [-11.5, -2.5, 1.3], [2.2, -9.2, 1.2],
   [-13, -8.5, 1.4], [13, -8.5, 1.3], [5, -9.3, 1.3], [-3.5, -9.6, 1.2], [0.8, -10.2, 1.1], [-13.6, -5.4, 1.1], [10, -9.8, 1.0]]) {
   part(new THREE.CylinderGeometry(0.16 * size, 0.22 * size, 1.4 * size, 8), TRUNK, x, 0.7 * size, z, parkGroup);
   fluff(0.95 * size, LEAVES, x, 1.9 * size, z, parkGroup);
@@ -2207,7 +2210,7 @@ for (const [x, z] of [[-2.2, -2.6], [2.4, -2.9], [5.2, -2.4], [-5.6, -2.7], [-9.
   fluff(0.45, LEAVES, x, 0.3, z, parkGroup);
   parkSolids.push([x, z, 0.5]);
 }
-for (const [x, z] of [[-2.9, -2.1], [6.2, -6.6], [-10.8, -6.4], [11.2, -5.2]]) { // parkbänkar
+for (const [x, z] of [[-2.9, -2.1], [6.2, -6.6], [-10.8, -6.4], [10.1, -3.2]]) { // parkbänkar
   const bench = group(parkGroup, x, 0, z);
   part(new THREE.BoxGeometry(1.5, 0.08, 0.45), WOOD, 0, 0.45, 0, bench);
   part(new THREE.BoxGeometry(1.5, 0.4, 0.07), WOOD, 0, 0.8, -0.2, bench);
@@ -2249,7 +2252,7 @@ part(new THREE.TorusGeometry(0.17, 0.025, 6, 14, Math.PI), WOOD, 0.35, 0.3, -0.2
 fluff(0.09, mat(0xe63946), -0.35, 0.1, 0.2, picnic); // ett äpple
 parkSolids.push([10.95, 0.7, 0.4]);
 // Lyktor längs gången
-for (const x of [-12, -3.3, 4.8, 12.6]) {
+for (const x of [-12, -3.3, 4.8, 9.4]) {
   part(new THREE.CylinderGeometry(0.05, 0.07, 1.9, 8), mat(0x3a3a48), x, 0.95, -1.9, parkGroup);
   fluff(0.17, new THREE.MeshBasicMaterial({ color: 0xfff1a8 }), x, 2.0, -1.9, parkGroup);
   parkSolids.push([x, -1.9, 0.2]);
@@ -2263,6 +2266,94 @@ for (const x of [-PARK_X - 1, PARK_X + 1]) {
   for (const y of [0.25, 0.58]) part(new THREE.BoxGeometry(0.05, 0.08, PARK_FRONT - PARK_BACK + 1.8), WHITE, x, y, (PARK_FRONT + PARK_BACK) / 2, parkGroup);
   for (let z = PARK_BACK - 0.9; z <= PARK_FRONT + 0.9; z += 1) part(new THREE.BoxGeometry(0.06, 0.8, 0.16), WHITE, x, 0.4, z, parkGroup);
 }
+// Lekplatsen: en rutschkana och en gunga som hunden kan åka på
+const SLIDE = { x: 11, z: -5.9 };
+const SWING = { x: 13.2, z: -3.9 };
+const BLUE = mat(0x2a9dff);
+const YELLOW = mat(0xffd93d);
+const slide = group(parkGroup, SLIDE.x, 0, SLIDE.z);
+part(new THREE.BoxGeometry(0.75, 0.08, 0.8), YELLOW, -0.6, 1.3, 0, slide); // plattformen högst upp
+for (const x of [-0.93, -0.27]) for (const z of [-0.36, 0.36]) part(new THREE.CylinderGeometry(0.05, 0.05, 1.75, 8), RED, x, 0.87, z, slide);
+for (let i = 0; i < 4; i++) part(new THREE.BoxGeometry(0.07, 0.05, 0.72), BLUE, -1.08 - (3 - i) * 0.12, 0.28 * (i + 1), 0, slide); // stegen
+const chute = part(new THREE.BoxGeometry(2.3, 0.06, 0.66), BLUE, 0.7, 0.7, 0, slide);
+chute.rotation.z = -0.563;
+for (const z of [-0.36, 0.36]) part(new THREE.BoxGeometry(2.3, 0.2, 0.06), RED, 0.7, 0.78, z, slide).rotation.z = -0.563;
+parkSolids.push([SLIDE.x - 0.7, SLIDE.z, 0.6], [SLIDE.x + 0.3, SLIDE.z, 0.5], [SLIDE.x + 1.2, SLIDE.z, 0.45]);
+const swing = group(parkGroup, SWING.x, 0, SWING.z);
+for (const x of [-1, 1]) part(new THREE.CylinderGeometry(0.06, 0.07, 2.05, 8), RED, x, 1.02, 0, swing);
+part(new THREE.CylinderGeometry(0.06, 0.06, 2.2, 8), RED, 0, 2.05, 0, swing).rotation.z = Math.PI / 2;
+const swingSeat = group(swing, 0, 2.05, 0); // den här gruppen gungar fram och tillbaka
+for (const x of [-0.3, 0.3]) part(new THREE.CylinderGeometry(0.015, 0.015, 1.5, 6), WHITE, x, -0.75, 0, swingSeat);
+part(new THREE.BoxGeometry(0.75, 0.06, 0.34), YELLOW, 0, -1.5, 0, swingSeat);
+parkSolids.push([SWING.x - 1, SWING.z, 0.2], [SWING.x + 1, SWING.z, 0.2]);
+// En skylt vid gången som visar vägen till lekplatsen
+const sign = group(parkGroup, 7.4, 0, -2.1);
+part(new THREE.CylinderGeometry(0.04, 0.04, 1.1, 8), TRUNK, 0, 0.55, 0, sign);
+part(new THREE.BoxGeometry(0.8, 0.36, 0.05), YELLOW, 0.1, 1.05, 0, sign);
+part(new THREE.ConeGeometry(0.22, 0.28, 3), YELLOW, 0.62, 1.05, 0, sign).rotation.z = -Math.PI / 2;
+parkSolids.push([7.4, -2.1, 0.2]);
+
+let ride = null; // { kind: 'slide' | 'swing', time } medan hunden åker
+let rideReady = true; // man måste gå en bit bort innan man kan åka igen
+const SWING_TIME = 6;
+function updateRide(dt) {
+  if (mode !== 'park') { ride = null; return; }
+  const toLadder = Math.hypot(dog.position.x - (SLIDE.x - 1.85), dog.position.z - SLIDE.z);
+  const toSeat = Math.hypot(dog.position.x - SWING.x, dog.position.z - (SWING.z + 0.35));
+  if (!ride) {
+    swingSeat.rotation.x *= 1 - Math.min(1, dt * 3); // gungan stannar av sig själv
+    if (toLadder > 1.5 && toSeat > 1.5) rideReady = true;
+    if (!rideReady || play) return;
+    if (toLadder < 0.8) ride = { kind: 'slide', time: 0 };
+    else if (toSeat < 0.75) ride = { kind: 'swing', time: 0 };
+    if (!ride) return;
+    rideReady = false;
+    strollTo = null;
+    SOUND.jump();
+    say(ride.kind === 'slide' ? 'Nu åker jag!' : 'Högre!');
+  }
+  ride.time += dt;
+  speedY = 0;
+  if (ride.kind === 'slide') {
+    const up = Math.min(1, ride.time / 0.8); // först klättrar hunden upp för stegen
+    const down = Math.max(0, Math.min(1, (ride.time - 1.1) / 0.9)); // sedan åker den ner
+    if (down === 0) {
+      dog.position.set(SLIDE.x - 1.7 + up * 1.1, up * 1.36, SLIDE.z);
+      dog.rotation.set(0, 0, up < 1 ? 0.6 : 0);
+    } else {
+      if (!ride.whee) { ride.whee = true; tone(950, 320, 0.85, 'sine', 0.1); say('Wiii!'); }
+      dog.position.set(SLIDE.x - 0.3 + down * 2.1, 1.38 - down * 1.25, SLIDE.z);
+      dog.rotation.set(0, 0, -0.5);
+    }
+    if (ride.time > 2.0) {
+      dog.position.set(SLIDE.x + 2.3, 0, SLIDE.z);
+      dog.rotation.set(0, -0.3, 0);
+      speedY = TAP_SPEED * 0.7;
+      SOUND.happy();
+      burst('⭐');
+      stats.rides = (stats.rides || 0) + 1;
+      ride = null;
+      checkMedals();
+    }
+  } else {
+    const strength = Math.min(1, ride.time) * Math.min(1, SWING_TIME - ride.time); // börjar mjukt och slutar mjukt
+    const a = Math.sin(ride.time * 2.8) * 0.75 * strength;
+    swingSeat.rotation.x = -a;
+    dog.position.set(SWING.x, 2.05 - Math.cos(a) * 1.47, SWING.z + Math.sin(a) * 1.47);
+    dog.rotation.set(-a, -Math.PI / 2, 0); // nosen mot kameran
+    if (ride.time > SWING_TIME) {
+      dog.position.set(SWING.x, 0, SWING.z + 1.3);
+      dog.rotation.set(0, -0.3, 0);
+      speedY = TAP_SPEED * 0.7;
+      SOUND.happy();
+      burst('⭐');
+      stats.rides = (stats.rides || 0) + 1;
+      ride = null;
+      checkMedals();
+    }
+  }
+}
+
 // Håller en hund utanför träd, bänkar och annat som står i vägen
 function keepOut(position, size) {
   for (const [x, z, radius] of parkSolids) {
@@ -2386,6 +2477,8 @@ function newFriend() {
 }
 let lastFriendBreed = -1;
 function startPark() {
+  ride = null;
+  rideReady = true;
   strollTo = null;
   parkCameraX = MY_SPOT + 0.8;
   parkCameraZ = 0;
@@ -2505,6 +2598,7 @@ for (const b of document.querySelectorAll('#dpad button')) {
 }
 function updateStroll(dt) {
   strolling = false;
+  if (ride) return; // på rutschkanan och gungan åker hunden av sig själv
   if (mode !== 'park' || play) {
     keysDown.clear();
     strollTo = null;
@@ -2578,6 +2672,7 @@ function showPark() {
 }
 function updatePark(dt, time) {
   updateStroll(dt);
+  updateRide(dt);
   if (mode === 'park') updateParkAnimals(time);
   friendBubbleTime -= dt;
   friendBubble.hidden = friendBubbleTime <= 0 || !friend;
@@ -2715,6 +2810,13 @@ if (location.hash.startsWith('#park')) { // testläge: hundparken, #park2 = efte
   startScreen.hidden = true;
   startPark();
   friend.dog.position.x = friend.spot.x + 0.001;
+  if (['#park6', '#park7', '#park8'].includes(location.hash)) { // lekplatsen: 6 = på väg ner för rutschkanan, 7 = på gungan, 8 = översikt
+    const n = Number(location.hash[5]);
+    dog.position.set(n === 6 ? SLIDE.x - 1.85 : n === 7 ? SWING.x : 11.5, 0, n === 6 ? SLIDE.z : n === 7 ? SWING.z + 0.35 : -1.5);
+    if (n < 8) for (let i = 0; i < (n === 6 ? 30 : 34); i++) updateRide(0.05);
+    parkCameraX = dog.position.x + 0.8;
+    parkCameraZ = n === 8 ? 0 : dog.position.z;
+  }
   if (location.hash === '#park5') { strollTo = { x: -7, z: -3.5 }; friend.arrived = true; friend.dog.position.x = friend.spot.x; for (let i = 0; i < 60; i++) { updateStroll(0.05); updatePark(0.05, i * 0.05); } parkCameraX = dog.position.x + 0.8; parkCameraZ = dog.position.z; }
   else if (location.hash !== '#park') setTimeout(greet, 300);
   if (location.hash.startsWith('#park3')) { // #park34 = leken efter 40 små tidssteg
