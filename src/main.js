@@ -32,7 +32,8 @@ const TEXTS = {
     'Spring bana {n}!': 'Juokse rata {n}!', 'Bana {n}': 'Rata {n}', 'Tryck för att hoppa, svep för att byta fil': 'Napauta hypätäksesi, pyyhkäise vaihtaaksesi kaistaa', 'Hoppa': 'Hyppää',
     'Oj då!': 'Hups!', 'Hunden snubblade. Försök igen!': 'Koira kompastui. Yritä uudelleen!',
     'Försök igen': 'Yritä uudelleen', 'Garderoben': 'Vaatekaappi',
-    'Bra sprunget!': 'Hyvin juostu!', 'Samla ben och köp kläder och leksaker': 'Kerää luita ja osta vaatteita ja leluja',
+    'Bra sprunget!': 'Hyvin juostu!', 'Samla ben och köp hundar, kläder och leksaker': 'Kerää luita ja osta koiria, vaatteita ja leluja',
+    'Golden': 'Kultainennoutaja',
     'Börja om från bana 1': 'Aloita alusta radalta 1', 'Säker? Tryck igen för att börja om': 'Varmasti? Paina uudelleen',
     'Promenad': 'Kävely', 'Gå på promenad som belöning': 'Palkinnoksi pääset kävelylle',
     'Köp': 'Osta', 'spring fler banor!': 'juokse lisää ratoja!', 'Boll': 'Pallo', 'Leka': 'Leiki', 'Nu behöver hunden lite omsorg': 'Nyt koira tarvitsee hoivaa',
@@ -68,7 +69,8 @@ const TEXTS = {
     'Spring bana {n}!': 'Run level {n}!', 'Bana {n}': 'Level {n}', 'Tryck för att hoppa, svep för att byta fil': 'Tap to jump, swipe to change lane', 'Hoppa': 'Jump',
     'Oj då!': 'Oops!', 'Hunden snubblade. Försök igen!': 'The dog tripped. Try again!',
     'Försök igen': 'Try again', 'Garderoben': 'Wardrobe',
-    'Bra sprunget!': 'Well run!', 'Samla ben och köp kläder och leksaker': 'Collect bones and buy clothes and toys',
+    'Bra sprunget!': 'Well run!', 'Samla ben och köp hundar, kläder och leksaker': 'Collect bones and buy dogs, clothes and toys',
+    'Golden': 'Golden retriever',
     'Börja om från bana 1': 'Start over from level 1', 'Säker? Tryck igen för att börja om': 'Sure? Tap again to start over',
     'Promenad': 'Walk', 'Gå på promenad som belöning': 'Go for a walk as a reward',
     'Köp': 'Buy', 'spring fler banor!': 'run more levels!', 'Boll': 'Ball', 'Nalle': 'Teddy', 'Leka': 'Play', 'Nu behöver hunden lite omsorg': 'Now the dog needs some care',
@@ -347,6 +349,7 @@ const PRICE = {
   Strumpor: 10, 'Stövlar': 20,
   'Ryggsäck': 20, Mantel: 30, Vingar: 40,
   Boll: 10, Frisbee: 15, Nalle: 30,
+  Mops: 30, Pudel: 40, Golden: 50, Chihuahua: 50, Dalmatiner: 60, Husky: 80, // hundar
 };
 let bones = 0; // alla ben man har tjänat
 try { bones = Math.max(0, Number(localStorage.getItem('bones')) || 0); } catch {}
@@ -524,6 +527,21 @@ function wear(kind, choice, color) {
 function stopTrying() {
   if (tryOn) wear(tryOn.kind, -1); // ta av det man bara provade
   tryOn = null;
+  if (breedIndex !== myBreed) { // byt tillbaka från en hund man bara tittade på
+    breedIndex = myBreed;
+    showBreed();
+  }
+}
+function pay(name) {
+  bones -= PRICE[name];
+  owned.add(name);
+  try {
+    localStorage.setItem('bones', bones);
+    localStorage.setItem('owned', JSON.stringify([...owned]));
+  } catch {}
+  document.getElementById('boneCount').textContent = '🦴 ' + bones;
+  SOUND.happy();
+  speedY = TAP_SPEED;
 }
 function saveOutfit() {
   const outfit = {};
@@ -565,10 +583,15 @@ const BREEDS = [
     ears: 'flap', earSize: 0.7, tail: 'curl', fur: 0xe8d2a6, legFur: 0xe8d2a6, earFur: 0x3a2a22, muzzle: 0x3a2a22 },
   { name: 'Husky', size: 1.15, legs: 1.3, cheeks: true, snout: [1.4, 0.9, 0.85],
     ears: 'pointy', tail: 'bushy', fur: 0x7f8b99, legFur: 0xffffff, earFur: 0x5f6b78, muzzle: 0xffffff },
+  { name: 'Golden', size: 1.1, legs: 1.25, cheeks: true, snout: [1.3, 0.95, 0.9],
+    ears: 'flap', tail: 'bushy', fur: 0xe2a94f, legFur: 0xe2a94f, earFur: 0xc98a3a, muzzle: 0xf0c880 },
+  { name: 'Chihuahua', size: 0.62, legs: 0.85, snout: [0.8, 0.85, 0.85], eyes: 1.4,
+    ears: 'pointy', earSize: 1.3, tail: 'long', fur: 0xd9a066, legFur: 0xd9a066, earFur: 0xc48a52, muzzle: 0xf3dcc0 },
 ];
 let breedIndex = 0;
 try { breedIndex = Number(localStorage.getItem('breed')) || 0; } catch {}
-if (!BREEDS[breedIndex]) breedIndex = 0;
+if (!BREEDS[breedIndex] || !have(BREEDS[breedIndex].name)) breedIndex = 0;
+let myBreed = breedIndex; // den hund man äger och har valt (breedIndex kan vara en man bara tittar på)
 let breed = BREEDS[breedIndex];
 const hats = wardrobe.find((kind) => kind.id === 'hat');
 function showBreed() {
@@ -631,14 +654,26 @@ function showWardrobe() {
   chipsBar.textContent = '';
   colorsBar.textContent = '';
   const kind = tabs[activeTab];
-  if (tryOn && tryOn.kind !== kind) stopTrying();
+  if ((tryOn && tryOn.kind !== kind) || (activeTab !== 0 && breedIndex !== myBreed)) stopTrying();
   if (activeTab === 0) {
     BREEDS.forEach((b, i) => {
-      button(chipsBar, 'chip', t(b.name), i === breedIndex, () => {
-        breedIndex = i;
+      const price = PRICE[b.name];
+      const choose = () => {
+        breedIndex = myBreed = i;
         try { localStorage.setItem('breed', i); } catch {}
         showBreed();
-      });
+      };
+      if (have(b.name)) {
+        button(chipsBar, 'chip', t(b.name), i === breedIndex, choose);
+      } else if (i !== breedIndex) {
+        // Första trycket: titta på hunden
+        button(chipsBar, 'chip locked', `🔒 ${t(b.name)} 🦴${price}`, false, () => { stopTrying(); breedIndex = i; showBreed(); });
+      } else if (bones >= price) {
+        // Andra trycket: köp den
+        button(chipsBar, 'chip buy', `${t('Köp')} ${t(b.name)}? 🦴${price}`, false, () => { pay(b.name); choose(); });
+      } else {
+        button(chipsBar, 'chip poor', `🦴${price} – ${t('spring fler banor!')}`, false, () => SOUND.hit());
+      }
     });
   } else {
     button(chipsBar, 'chip', '✖ ' + t('ingen'), kind.choice < 0, () => { stopTrying(); wear(kind, -1); saveOutfit(); });
@@ -653,17 +688,9 @@ function showWardrobe() {
       } else if (bones >= price) {
         // Andra trycket: köp det
         button(chipsBar, 'chip buy', `${t('Köp')} ${t(name)}? 🦴${price}`, false, () => {
-          bones -= price;
-          owned.add(name);
           tryOn = null;
-          try {
-            localStorage.setItem('bones', bones);
-            localStorage.setItem('owned', JSON.stringify([...owned]));
-          } catch {}
+          pay(name);
           saveOutfit();
-          document.getElementById('boneCount').textContent = '🦴 ' + bones;
-          SOUND.happy();
-          speedY = TAP_SPEED;
         });
       } else {
         button(chipsBar, 'chip poor', `🦴${price} – ${t('spring fler banor!')}`, false, () => SOUND.hit());
@@ -677,6 +704,9 @@ function showWardrobe() {
     }
   }
   colorsBar.style.visibility = colorsBar.children.length ? 'visible' : 'hidden';
+  // Rulla fram den knapp man håller på med, så att den inte hamnar utanför skärmen
+  const current = chipsBar.querySelector('.buy, .poor, .chosen');
+  if (current) chipsBar.scrollLeft = current.offsetLeft - chipsBar.offsetLeft - (chipsBar.clientWidth - current.offsetWidth) / 2;
 }
 tabs.forEach((tab, i) => {
   const el = document.createElement('button');
@@ -684,7 +714,6 @@ tabs.forEach((tab, i) => {
   el.textContent = tab.icon;
   el.addEventListener('click', () => {
     activeTab = i;
-    chipsBar.scrollLeft = 0;
     showWardrobe();
   });
   tabsBar.appendChild(el);
