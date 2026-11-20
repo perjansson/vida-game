@@ -22,6 +22,9 @@ const TEXTS = {
     'Tryck på hunden så hoppar den': 'Paina koiraa, niin se hyppää',
     'Ge hunden ett namn': 'Anna koiralle nimi',
     'Spela!': 'Pelaa!',
+    '🐶 Hund': '🐶 Koira',
+    'Pudel': 'Villakoira', 'Dalmatiner': 'Dalmatiankoira', 'Mops': 'Mopsi',
+    'Välj hund och byt kläder med knapparna': 'Valitse koira ja vaihda vaatteita napeilla',
     '👕 Tröja': '👕 Paita',
     'Röd': 'Punainen', 'Randig': 'Raidallinen', 'Rosa': 'Pinkki', 'Grön': 'Vihreä', 'Blå': 'Sininen',
     '🎩 Hatt': '🎩 Hattu',
@@ -41,6 +44,9 @@ const TEXTS = {
     'Tryck på hunden så hoppar den': 'Tap the dog to make it jump',
     'Ge hunden ett namn': 'Give the dog a name',
     'Spela!': 'Play!',
+    '🐶 Hund': '🐶 Dog',
+    'Pudel': 'Poodle', 'Dalmatiner': 'Dalmatian', 'Mops': 'Pug',
+    'Välj hund och byt kläder med knapparna': 'Choose a dog and change clothes with the buttons',
     '👕 Tröja': '👕 Sweater',
     'Röd': 'Red', 'Randig': 'Striped', 'Rosa': 'Pink', 'Grön': 'Green', 'Blå': 'Blue',
     '🎩 Hatt': '🎩 Hat',
@@ -98,6 +104,7 @@ for (let i = 0; i < 80; i++) {
 // Hunden: en fluffig maltipoo, byggd av många mjuka bollar
 const FUR = new THREE.MeshStandardMaterial({ color: 0xfbf1e0, roughness: 1 }); // gräddvit päls
 const EAR_FUR = new THREE.MeshStandardMaterial({ color: 0xecc9a0, roughness: 1 }); // aprikosfärgade öron
+const MUZZLE = new THREE.MeshStandardMaterial({ color: 0xfbf1e0, roughness: 1 }); // nosparti och kinder
 const BLACK = new THREE.MeshStandardMaterial({ color: 0x1a1210, roughness: 0.3 });
 const PINK = new THREE.MeshStandardMaterial({ color: 0xff8fb0, roughness: 0.6 });
 const FLUFF = new THREE.SphereGeometry(1, 12, 10); // en pälstuss, ändrar storlek med scale
@@ -138,13 +145,15 @@ const head = new THREE.Group();
 head.position.set(0.55, 1.05, 0);
 dog.add(head);
 fluff(0.33, FUR, 0, 0, 0, head);
-fluff(0.17, FUR, 0.02, 0.27, 0, head); // lugg
-fluff(0.13, FUR, 0.1, 0.24, 0.13, head);
-fluff(0.13, FUR, 0.1, 0.24, -0.13, head);
-fluff(0.15, FUR, 0.24, -0.1, 0.09, head); // nosparti
-fluff(0.15, FUR, 0.24, -0.1, -0.09, head);
-fluff(0.14, FUR, 0.1, -0.2, 0.17, head); // kinder
-fluff(0.14, FUR, 0.1, -0.2, -0.17, head);
+const lugg = [
+  fluff(0.17, FUR, 0.02, 0.27, 0, head),
+  fluff(0.13, FUR, 0.1, 0.24, 0.13, head),
+  fluff(0.13, FUR, 0.1, 0.24, -0.13, head),
+];
+fluff(0.15, MUZZLE, 0.24, -0.1, 0.09, head); // nosparti
+fluff(0.15, MUZZLE, 0.24, -0.1, -0.09, head);
+fluff(0.14, MUZZLE, 0.1, -0.2, 0.17, head); // kinder
+fluff(0.14, MUZZLE, 0.1, -0.2, -0.17, head);
 fluff(0.065, BLACK, 0.38, -0.04, 0, head); // nos
 fluff(0.055, BLACK, 0.27, 0.07, 0.13, head); // knappögon
 fluff(0.055, BLACK, 0.27, 0.07, -0.13, head);
@@ -304,6 +313,55 @@ for (const kind of wardrobe) {
   buttonBar.appendChild(button);
 }
 
+// ---------- Hundtyper ----------
+// Alla hundar har samma kropp, så att kläderna passar. Färger, öron, lugg och prickar skiljer dem åt.
+const spots = new THREE.Group(); // dalmatinerns prickar
+const spotsOnHead = new THREE.Group();
+dog.add(spots);
+head.add(spotsOnHead);
+function spotsOn(parent, cx, cy, cz, radius, directions, size) {
+  for (const [dx, dy, dz] of directions) {
+    const d = new THREE.Vector3(dx, dy, dz).normalize().multiplyScalar(radius - 0.02);
+    fluff(size, BLACK, cx + d.x, cy + d.y, cz + d.z, parent);
+  }
+}
+spotsOn(spots, 0.18, 0.55, 0, 0.36, [[0.1, 0.4, 1], [0.6, 0.1, 0.8], [0.2, 0.5, -1], [0.7, 0.3, -0.6], [0.3, -0.4, 1]], 0.045);
+spotsOn(spots, -0.2, 0.55, 0, 0.34, [[-0.2, 0.3, 1], [-0.7, 0.2, 0.6], [-0.1, 0.5, -1], [-0.8, 0.4, -0.3], [-0.3, -0.4, -1]], 0.045);
+spotsOn(spotsOnHead, 0, 0, 0, 0.33, [[-0.2, 0.7, 0.6], [-0.6, 0.3, -0.7], [0.1, 0.9, -0.4], [-0.9, 0.2, 0.2]], 0.05);
+
+const BREEDS = [
+  { name: 'Maltipoo', fur: 0xfbf1e0, ears: 0xecc9a0, muzzle: 0xfbf1e0, lugg: true },
+  { name: 'Pudel', fur: 0x8a5a3a, ears: 0x6e4429, muzzle: 0x8a5a3a, lugg: true },
+  { name: 'Dalmatiner', fur: 0xffffff, ears: 0x1a1a1a, muzzle: 0xffffff, spots: true },
+  { name: 'Mops', fur: 0xe8d2a6, ears: 0x3a2a22, muzzle: 0x3a2a22 },
+  { name: 'Husky', fur: 0x8d99a6, ears: 0x5f6b78, muzzle: 0xffffff, earsUp: true },
+];
+let breedIndex = 0;
+try { breedIndex = Number(localStorage.getItem('breed')) || 0; } catch {}
+if (!BREEDS[breedIndex]) breedIndex = 0;
+let breed = BREEDS[breedIndex];
+const hats = wardrobe.find((kind) => kind.label === '🎩 Hatt');
+const breedButton = document.createElement('button');
+function showBreed() {
+  breed = BREEDS[breedIndex];
+  FUR.color.setHex(breed.fur);
+  EAR_FUR.color.setHex(breed.ears);
+  MUZZLE.color.setHex(breed.muzzle);
+  for (const tuft of lugg) tuft.visible = !!breed.lugg;
+  spots.visible = spotsOnHead.visible = !!breed.spots;
+  for (const hat of hats.items) hat.position.y = breed.lugg ? 0 : -0.1; // hatten sitter lägre utan lugg
+  breedButton.innerHTML = `${t('🐶 Hund')}<small>${t(breed.name)}</small>`;
+}
+breedButton.addEventListener('click', () => {
+  breedIndex = (breedIndex + 1) % BREEDS.length;
+  try { localStorage.setItem('breed', breedIndex); } catch {}
+  showBreed();
+  speedY = Math.max(speedY, 2.5);
+});
+refreshers.push(showBreed);
+showBreed();
+buttonBar.prepend(breedButton);
+
 dog.rotation.y = -0.5; // vrid hunden lite mot kameran
 scene.add(dog);
 
@@ -409,7 +467,8 @@ renderer.setAnimationLoop(() => {
   const t = clock.elapsedTime;
   const inAir = dog.position.y > 0.01;
   tail.rotation.x = Math.sin(t * (inAir ? 22 : 9)) * 0.6;
-  ears[0].rotation.x = inAir ? -0.9 : Math.sin(t * 2) * 0.05; // öronen flaxar utåt i luften
+  const flap = inAir ? -0.9 : Math.sin(t * 2) * 0.05; // öronen flaxar utåt i luften
+  ears[0].rotation.x = breed.earsUp ? -2.85 + flap * 0.2 : flap; // huskyns öron står rakt upp
   ears[1].rotation.x = -ears[0].rotation.x;
 
   // Kameran följer mjukt med hunden uppåt
