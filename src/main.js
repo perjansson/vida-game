@@ -17,6 +17,11 @@ const TEXTS = {
     'Klä ut {namn}!': 'Pue {namn}!',
     'Skriv hundens namn': 'Kirjoita koiran nimi',
     ingen: 'ei mitään',
+    'Tryck på knapparna för att byta kläder': 'Vaihda vaatteita painamalla nappeja',
+    'Dra för att snurra på hunden': 'Pyöritä koiraa vetämällä',
+    'Tryck på hunden så hoppar den': 'Paina koiraa, niin se hyppää',
+    'Ge hunden ett namn': 'Anna koiralle nimi',
+    'Spela!': 'Pelaa!',
     '👕 Tröja': '👕 Paita',
     'Röd': 'Punainen', 'Randig': 'Raidallinen', 'Rosa': 'Pinkki', 'Grön': 'Vihreä', 'Blå': 'Sininen',
     '🎩 Hatt': '🎩 Hattu',
@@ -31,6 +36,11 @@ const TEXTS = {
     'Klä ut {namn}!': 'Dress up {namn}!',
     'Skriv hundens namn': "Type the dog's name",
     ingen: 'none',
+    'Tryck på knapparna för att byta kläder': 'Tap the buttons to change clothes',
+    'Dra för att snurra på hunden': 'Drag to spin the dog',
+    'Tryck på hunden så hoppar den': 'Tap the dog to make it jump',
+    'Ge hunden ett namn': 'Give the dog a name',
+    'Spela!': 'Play!',
     '👕 Tröja': '👕 Sweater',
     'Röd': 'Red', 'Randig': 'Striped', 'Rosa': 'Pink', 'Grön': 'Green', 'Blå': 'Blue',
     '🎩 Hatt': '🎩 Hat',
@@ -342,17 +352,29 @@ nameInput.addEventListener('keydown', (event) => {
 showName();
 refreshers.push(showName);
 
-// Startskärmen: välj språk först, sedan börjar spelet
+// Startskärmen: förklarar spelet. Man väljer språk och trycker sedan på Spela.
 const startScreen = document.getElementById('start');
-for (const button of startScreen.querySelectorAll('button')) {
-  button.addEventListener('click', () => {
-    lang = button.dataset.lang;
-    document.documentElement.lang = lang;
-    for (const refresh of refreshers) refresh();
-    startScreen.hidden = true;
-    speedY = TAP_SPEED; // hunden hoppar av glädje när spelet börjar
-  });
+const langButtons = startScreen.querySelectorAll('#langs button');
+refreshers.push(() => {
+  for (const el of startScreen.querySelectorAll('[data-t]')) el.textContent = t(el.dataset.t);
+  for (const button of langButtons) button.classList.toggle('chosen', button.dataset.lang === lang);
+});
+function setLanguage(newLang) {
+  lang = newLang;
+  document.documentElement.lang = lang;
+  try { localStorage.setItem('lang', lang); } catch {}
+  for (const refresh of refreshers) refresh();
 }
+for (const button of langButtons) {
+  button.addEventListener('click', () => setLanguage(button.dataset.lang));
+}
+document.getElementById('play').addEventListener('click', () => {
+  startScreen.hidden = true;
+  speedY = TAP_SPEED; // hunden hoppar av glädje när spelet börjar
+});
+let savedLang = 'sv';
+try { savedLang = localStorage.getItem('lang') || 'sv'; } catch {}
+setLanguage(savedLang === 'sv' || TEXTS[savedLang] ? savedLang : 'sv');
 
 // Jordglob-knappen öppnar språkvalet igen, mitt i spelet. Kläderna och namnet finns kvar.
 document.getElementById('language').addEventListener('click', () => {

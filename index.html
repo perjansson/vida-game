@@ -61,26 +61,55 @@
       #buttons small { display: block; font-size: 0.7em; color: #7b3fd1; margin-top: 2px; }
       #start {
         position: fixed; inset: 0; z-index: 10;
-        display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px;
-        padding: 16px; box-sizing: border-box;
-        background: rgba(27, 16, 53, 0.88);
+        display: flex; align-items: center; justify-content: center;
+        padding: 12px; box-sizing: border-box; overflow-y: auto;
+        background: rgba(27, 16, 53, 0.75);
         font-family: 'Luckiest Guy', system-ui, sans-serif;
       }
       #start[hidden] { display: none; }
-      #start h1 {
-        margin: 0 0 8px; text-align: center; font-weight: normal;
-        font-size: clamp(22px, 6vw, 42px); line-height: 1.2; letter-spacing: 1px;
-        color: #ffd93d; text-shadow: 0 4px 0 #ff5fa2;
+      #card {
+        width: min(100%, 460px); margin: auto; box-sizing: border-box;
+        padding: clamp(14px, 3vh, 26px) clamp(14px, 4vw, 26px);
+        display: flex; flex-direction: column; align-items: center; gap: clamp(8px, 2vh, 16px);
+        background: linear-gradient(#5b3bb0, #3b2a6b);
+        border: 4px solid #ffd93d; border-radius: 28px;
+        box-shadow: 0 8px 0 #ff5fa2, 0 16px 30px rgba(0, 0, 0, 0.5);
       }
-      #start button {
-        font-family: inherit; font-size: clamp(22px, 6vw, 34px); letter-spacing: 1px;
-        width: min(80vw, 320px); min-height: min(76px, 15vh);
-        color: #2a1458; background: #ffd93d;
-        border: 3px solid #2a1458; border-radius: 20px;
-        box-shadow: 0 6px 0 #ff5fa2; cursor: pointer;
-        touch-action: manipulation; -webkit-tap-highlight-color: transparent;
+      #card .paws { font-size: clamp(22px, 5vh, 36px); line-height: 1; }
+      #card h1 {
+        margin: 0; text-align: center; font-weight: normal;
+        font-size: clamp(26px, 8vw, 46px); line-height: 1.1; letter-spacing: 1px;
+        color: #ffd93d; -webkit-text-stroke: 2px #2a1458; paint-order: stroke fill;
+        text-shadow: 0 4px 0 #ff5fa2; transform: rotate(-2deg);
       }
-      #start button:active { transform: translateY(4px); box-shadow: 0 2px 0 #ff5fa2; }
+      #card ul {
+        list-style: none; margin: 0; padding: 0; align-self: stretch;
+        display: flex; flex-direction: column; gap: clamp(4px, 1.2vh, 10px);
+      }
+      #card li {
+        display: flex; align-items: center; gap: 10px;
+        padding: 6px 12px; border-radius: 14px; background: rgba(255, 255, 255, 0.14);
+        color: #fff; font-size: clamp(14px, 4vw, 19px); letter-spacing: 0.5px; line-height: 1.2;
+      }
+      #card li span:first-child { font-size: 1.4em; }
+      #langs { display: flex; gap: 8px; align-self: stretch; }
+      #langs button {
+        flex: 1; min-width: 0; min-height: 52px; padding: 4px;
+        font-family: inherit; font-size: clamp(13px, 3.6vw, 18px); letter-spacing: 0.5px;
+        color: #2a1458; background: #fff; border: 3px solid #2a1458; border-radius: 14px;
+        cursor: pointer; touch-action: manipulation; -webkit-tap-highlight-color: transparent;
+      }
+      #langs button.chosen { background: #ffd93d; box-shadow: 0 0 0 3px #ff5fa2; }
+      #play {
+        font-family: inherit; font-size: clamp(24px, 7vw, 36px); letter-spacing: 2px;
+        width: 100%; min-height: clamp(56px, 11vh, 76px);
+        color: #fff; background: #2ecc71; -webkit-text-stroke: 1.5px #14532d; paint-order: stroke fill;
+        border: 3px solid #14532d; border-radius: 20px; box-shadow: 0 6px 0 #14532d;
+        cursor: pointer; touch-action: manipulation; -webkit-tap-highlight-color: transparent;
+        animation: pulse 1.2s ease-in-out infinite;
+      }
+      #play:active { transform: translateY(4px); box-shadow: 0 2px 0 #14532d; animation: none; }
+      @keyframes pulse { 50% { transform: scale(1.04); } }
     </style>
   </head>
   <body>
@@ -93,10 +122,22 @@
     </div>
     <div id="buttons"></div>
     <div id="start">
-      <h1>Välj språk<br />Valitse kieli<br />Choose language</h1>
-      <button data-lang="sv">🇸🇪 Svenska</button>
-      <button data-lang="fi">🇫🇮 Suomi</button>
-      <button data-lang="en">🇬🇧 English</button>
+      <div id="card">
+        <div class="paws">🐾 🐩 🐾</div>
+        <h1 data-t="Klä ut hunden!">Klä ut hunden!</h1>
+        <ul>
+          <li><span>👕</span><span data-t="Tryck på knapparna för att byta kläder">Tryck på knapparna för att byta kläder</span></li>
+          <li><span>👆</span><span data-t="Dra för att snurra på hunden">Dra för att snurra på hunden</span></li>
+          <li><span>🐶</span><span data-t="Tryck på hunden så hoppar den">Tryck på hunden så hoppar den</span></li>
+          <li><span>✏️</span><span data-t="Ge hunden ett namn">Ge hunden ett namn</span></li>
+        </ul>
+        <div id="langs">
+          <button data-lang="sv">🇸🇪 Svenska</button>
+          <button data-lang="fi">🇫🇮 Suomi</button>
+          <button data-lang="en">🇬🇧 English</button>
+        </div>
+        <button id="play" data-t="Spela!">Spela!</button>
+      </div>
     </div>
     <script type="module" src="/src/main.js"></script>
   </body>
