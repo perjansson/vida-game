@@ -741,6 +741,63 @@ for (const z of [-1.8, 1.8]) part(new THREE.CylinderGeometry(0.07, 0.07, 2.6, 8)
 part(new THREE.BoxGeometry(0.08, 0.45, 3.7), mat(0xffd93d), 0, 2.5, 0, goal);
 for (let i = 0; i < 6; i++) part(new THREE.BoxGeometry(0.1, 0.2, 0.3), mat(0x2a1458), 0, 2.5 + (i % 2 ? 0.1 : -0.1), -1.5 + i * 0.6, goal);
 
+// Hindren. half = halva längden, top = hur högt man måste hoppa, fromLevel = första banan de finns på.
+// roll = rullar mot hunden, bottom = svävar i luften (då ska man INTE hoppa).
+const WATER = new THREE.MeshStandardMaterial({ color: 0x4ab8ff, roughness: 0.2 });
+const ROCK = new THREE.MeshStandardMaterial({ color: 0x8f8f9c, roughness: 1 });
+const OBSTACLES = [
+  { fromLevel: 1, half: 0.22, top: 0.44, build: (g) => { // stock
+    part(new THREE.CylinderGeometry(0.22, 0.22, 2.4, 12), obstacleMat, 0, 0.22, 0, g).rotation.x = Math.PI / 2;
+  } },
+  { fromLevel: 1, half: 0.6, top: 0.27, build: (g) => { // vattenpöl
+    const puddle = part(new THREE.CylinderGeometry(1, 1, 0.03, 24), WATER, 0, 0.02, 0, g);
+    puddle.scale.set(0.65, 1, 1.25);
+    puddle.castShadow = false;
+  } },
+  { fromLevel: 2, half: 0.2, top: 0.62, build: (g) => { // häck
+    part(new THREE.BoxGeometry(0.36, 0.5, 2.4), obstacleMat, 0, 0.25, 0, g);
+    for (const z of [-0.9, -0.3, 0.3, 0.9]) fluff(0.26, bushMat, 0, 0.48, z, g).scale.y = 0.16;
+  } },
+  { fromLevel: 2, half: 0.32, top: 0.66, build: (g) => { // stenar
+    for (const [z, size] of [[-0.85, 0.3], [-0.15, 0.36], [0.6, 0.28], [1.05, 0.2]]) {
+      fluff(size, ROCK, (z * 7 % 1) * 0.1, size * 0.8, z, g).scale.y = size * 0.9;
+    }
+  } },
+  { fromLevel: 3, half: 0.4, top: 0.8, roll: 2.5, build: (g) => { // boll som rullar mot hunden
+    const ball = group(g, 0, 0.4, 0);
+    fluff(0.4, mat(0xffffff), 0, 0, 0, ball);
+    for (const [turn, color] of [[0, 0xe63946], [Math.PI / 3, 0xffd93d], [(2 * Math.PI) / 3, 0x2a9dff]]) {
+      part(new THREE.TorusGeometry(0.385, 0.05, 8, 24), mat(color), 0, 0, 0, ball).rotation.y = turn;
+    }
+    return (time) => (ball.rotation.z = time * 6);
+  } },
+  { fromLevel: 4, half: 0.3, bottom: 2.0, build: (g) => { // fåglar som flyger lågt, spring under dem
+    const wings = [];
+    for (const z of [-0.9, 0, 0.9]) {
+      const bird = group(g, 0, 2.3, z);
+      fluff(0.17, mat(0xffd93d), 0, 0, 0, bird).scale.x = 0.24;
+      part(new THREE.ConeGeometry(0.05, 0.14, 8), mat(0xff9f1c), -0.26, 0, 0, bird).rotation.z = Math.PI / 2;
+      fluff(0.03, BLACK, -0.15, 0.07, 0.1, bird);
+      fluff(0.03, BLACK, -0.15, 0.07, -0.1, bird);
+      for (const side of [-1, 1]) {
+        const wing = group(bird, 0, 0.05, side * 0.1);
+        fluff(1, mat(0xffb703), 0, 0, side * 0.2, wing).scale.set(0.14, 0.025, 0.22);
+        wings.push([wing, side]);
+      }
+    }
+    return (time) => {
+      for (const [wing, side] of wings) wing.rotation.x = side * Math.sin(time * 14) * 0.7;
+      g.position.y = Math.sin(time * 3) * 0.08;
+    };
+  } },
+];
+
+function addObstacle(kind, x) {
+  const g = group(obstacleGroup, x, 0, 0);
+  const animate = kind.build(g);
+  obstacles.push({ ...kind, x, group: g, animate, hit: false });
+}
+
 function startRun() {
   mode = 'run';
   const theme = THEMES[(level - 1) % THEMES.length];
@@ -757,18 +814,12 @@ function startRun() {
   obstacleGroup.clear();
   obstacles = [];
   runSpeed = Math.min(4.6 + level * 0.5, 9);
+  const kinds = OBSTACLES.filter((kind) => level >= kind.fromLevel);
   let x = 10;
   for (let i = 0; i < 5 + level * 2; i++) {
-    x += runSpeed * (1.3 + Math.random() * 0.9);
-    const tall = level > 1 && Math.random() < 0.4;
-    let mesh;
-    if (tall) {
-      mesh = part(new THREE.BoxGeometry(0.35, 0.6, 2.4), obstacleMat, x, 0.3, 0, obstacleGroup);
-    } else {
-      mesh = part(new THREE.CylinderGeometry(0.22, 0.22, 2.4, 12), obstacleMat, x, 0.22, 0, obstacleGroup);
-      mesh.rotation.x = Math.PI / 2;
-    }
-    obstacles.push({ x, height: tall ? 0.6 : 0.44, mesh, hit: false });
+    const kind = kinds[Math.floor(Math.random() * kinds.length)];
+    x += runSpeed * (1.3 + Math.random() * 0.9) + (kind.roll ? 7 : 0); // rullande hinder får extra plats
+    addObstacle(kind, x);
   }
   goalX = x + 9;
   goal.position.x = goalX;
@@ -793,12 +844,17 @@ window.addEventListener('keydown', (event) => {
   jump();
 });
 
-function updateRun(dt) {
+function updateRun(dt, time) {
   dog.position.x += runSpeed * dt;
   safeTime -= dt;
-  const reach = 0.25 + 0.4 * breed.size; // hur nära hindret hunden måste vara för att slå i
+  const dogTop = dog.position.y + (1.3 + upperBase) * breed.size; // hundens huvud
   for (const ob of obstacles) {
-    if (!ob.hit && Math.abs(dog.position.x - ob.x) < reach && dog.position.y < ob.height - 0.12) {
+    if (ob.roll && !ob.hit && ob.x - dog.position.x < 22) ob.x -= ob.roll * dt;
+    ob.group.position.x = ob.x;
+    if (ob.animate && !ob.hit) ob.animate(time);
+    const close = Math.abs(dog.position.x - ob.x) < 0.4 * breed.size + ob.half;
+    const touching = ob.bottom ? dogTop > ob.bottom + 0.1 : dog.position.y < ob.top - 0.12;
+    if (!ob.hit && close && touching) {
       ob.hit = true;
       if (safeTime <= 0) {
         hearts -= 1;
@@ -808,7 +864,8 @@ function updateRun(dt) {
         if (hearts <= 0) return endRun(false);
       }
     }
-    if (ob.hit && ob.mesh.position.y > -1) ob.mesh.position.y -= dt * 2.5; // hindret sjunker undan
+    // Ett hinder man har slagit i försvinner: ner i marken, eller upp i luften om det flyger
+    if (ob.hit && Math.abs(ob.group.position.y) < 4) ob.group.position.y += (ob.bottom ? 4 : -2.5) * dt;
   }
   const start = dog.position.x - 12;
   roadside.forEach((bush, i) => {
@@ -1018,6 +1075,12 @@ if (test) {
 if (location.hash === '#run' || location.hash.startsWith('#care')) {
   startScreen.hidden = true;
   startRun();
+  if (location.hash === '#run') { // visa en av varje sorts hinder på rad
+    obstacleGroup.clear();
+    obstacles = [];
+    runSpeed = 0.01;
+    OBSTACLES.forEach((kind, i) => addObstacle({ ...kind, roll: 0 }, 2.5 + i * 2.6));
+  }
   if (location.hash.startsWith('#care')) {
     endRun(true);
     breedIndex = Number(location.hash[6] || 0) % BREEDS.length; // #care12 = sak 1, hund 2
@@ -1064,7 +1127,7 @@ renderer.setAnimationLoop(() => {
   const time = clock.elapsedTime;
   const running = mode === 'run';
 
-  if (running) updateRun(dt);
+  if (running) updateRun(dt, time);
 
   // Tyngdkraft. I garderoben studsar hunden lite, på banan landar den direkt.
   speedY -= (running ? RUN_GRAVITY : GRAVITY) * dt;
