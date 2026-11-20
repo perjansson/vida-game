@@ -665,6 +665,11 @@ const WHITE = mat(0xffffff);
 for (let x = -9; x <= 9; x += 0.5) part(new THREE.BoxGeometry(0.16, 0.8, 0.05), WHITE, x, 0.4, -2.9, homeGroup); // staket
 for (const y of [0.25, 0.58]) part(new THREE.BoxGeometry(18.5, 0.08, 0.04), WHITE, 0, y, -2.93, homeGroup);
 
+// Dynan i korgen kan byta färg
+let bedColor = 0xff8fc7;
+try { bedColor = Number(localStorage.getItem('bedColor')) || bedColor; } catch {}
+const BED = mat(bedColor);
+
 const HOME = [
   ['Matta', (g) => {
     for (const [radius, color, y] of [[1.3, 0xff8fc7, 0.01], [1.05, 0xffd93d, 0.015], [0.8, 0xff8fc7, 0.02]]) {
@@ -697,7 +702,7 @@ const HOME = [
   ['Korg', (g) => { // en mjuk hundkorg att sova i
     const basket = group(g, 1.3, 0, -1.4);
     part(new THREE.TorusGeometry(0.42, 0.13, 10, 24), mat(0xb5793f), 0, 0.13, 0, basket).rotation.x = Math.PI / 2;
-    fluff(1, mat(0xff8fc7), 0, 0.1, 0, basket).scale.set(0.4, 0.1, 0.4);
+    fluff(1, BED, 0, 0.1, 0, basket).scale.set(0.4, 0.1, 0.4);
   }],
   ['Träd', (g) => {
     const tree = group(g, 2.0, 0, -3.6);
@@ -972,6 +977,17 @@ function showWardrobe() {
         });
       } else {
         button(chipsBar, 'chip poor', `🦴${price} – ${t('spring fler banor!')}`, false, () => SOUND.hit());
+      }
+    }
+    // Färgprickarna byter färg på dynan i korgen
+    if (placed.has('Korg') || tryHome === 'Korg') {
+      for (const color of COLORS) {
+        const dot = button(colorsBar, 'dot', '', color === bedColor, () => {
+          bedColor = color;
+          BED.color.setHex(color);
+          try { localStorage.setItem('bedColor', color); } catch {}
+        });
+        dot.style.background = '#' + color.toString(16).padStart(6, '0');
       }
     }
   } else {
