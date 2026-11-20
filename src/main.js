@@ -71,7 +71,7 @@ const TEXTS = {
     'Hundparken': 'Koirapuisto', 'Titta, där kommer en hund!': 'Katso, sieltä tulee koira!', 'Hundkompisar': 'Koirakaverit',
     'Hälsa': 'Tervehdi', 'Nästa hund': 'Seuraava koira', 'Gå hem': 'Mene kotiin', 'Hej! Jag heter {n}': 'Hei! Olen {n}',
     'Vi är kompisar nu!': 'Nyt ollaan kavereita!', 'Vill du leka?': 'Leikitäänkö?', 'Hej kompis!': 'Hei kaveri!', 'Voff voff!': 'Hau hau!',
-    'Hundkompis': 'Koirakaveri', 'Hälsa på fem hundar i parken': 'Tervehdi viittä koiraa puistossa',
+    'Jag tog den!': 'Sain sen!', 'Hundkompis': 'Koirakaveri', 'Hälsa på fem hundar i parken': 'Tervehdi viittä koiraa puistossa',
   },
   en: {
     'Klä ut hunden!': 'Dress up the dog!',
@@ -130,7 +130,7 @@ const TEXTS = {
     'Hundparken': 'Dog park', 'Titta, där kommer en hund!': 'Look, here comes a dog!', 'Hundkompisar': 'Dog friends',
     'Hälsa': 'Say hi', 'Nästa hund': 'Next dog', 'Gå hem': 'Go home', 'Hej! Jag heter {n}': "Hi! I'm {n}",
     'Vi är kompisar nu!': 'We are friends now!', 'Vill du leka?': 'Want to play?', 'Hej kompis!': 'Hi friend!', 'Voff voff!': 'Woof woof!',
-    'Hundkompis': 'Dog friend', 'Hälsa på fem hundar i parken': 'Say hi to five dogs in the park',
+    'Jag tog den!': 'I got it!', 'Hundkompis': 'Dog friend', 'Hälsa på fem hundar i parken': 'Say hi to five dogs in the park',
   },
 };
 let lang = 'sv';
@@ -1872,6 +1872,8 @@ function friendSays(text) {
   friendBubbleTime = 2.8;
 }
 function removeFriend() {
+  play = null;
+  playBall.visible = false;
   if (!friend) return;
   scene.remove(friend.dog);
   for (const m of friend.materials) m.dispose();
@@ -1940,6 +1942,73 @@ function greet() {
   checkMedals();
   showPark();
 }
+// Leka: en boll kastas in i parken och båda hundarna springer efter den
+const playBall = fluff(0.14, mat(0xd8f03c), 0, 0.14, 0, parkGroup);
+playBall.visible = false;
+let play = null; // { phase: 'fly' | 'chase' | 'back', time, x, z, friendSpeed }
+const TOWARD_RIGHT = -0.3; // hunden tittar åt höger, lite mot kameran
+const TOWARD_LEFT = Math.PI + 0.3;
+function startPlay() {
+  if (!friend || !friend.greeted || play) return;
+  SOUND.Leka();
+  const reach = Math.min(2.2, 1.1 + camera.aspect); // på smal skärm kastas bollen inte lika långt åt sidan
+  play = { phase: 'fly', time: 0, x: (Math.random() * 2 - 1) * reach, z: 0.5, friendSpeed: 2.3 + Math.random() * 1.5 };
+  playBall.visible = true;
+  showPark();
+}
+// Flytta en hund mot x med små skutt. Säger sant när hunden är framme.
+function trot(d, x, speed, dt, time) {
+  const step = x - d.position.x;
+  if (Math.abs(step) < 0.02) return true;
+  d.rotation.y = step > 0 ? TOWARD_RIGHT : TOWARD_LEFT;
+  d.position.x += Math.sign(step) * Math.min(Math.abs(step), speed * dt);
+  if (d !== dog) d.position.y = Math.abs(Math.sin(time * 11)) * 0.2;
+  else if (d.position.y === 0) speedY = 2.2; // min hund skuttar med hjälp av tyngdkraften i spelloopen
+  return false;
+}
+function updatePlay(dt, time) {
+  if (!play || !friend) return;
+  play.time += dt;
+  const f = friend.dog;
+  if (play.phase === 'fly') {
+    // Bollen flyger i en båge från kameran och landar i gräset
+    const k = Math.min(1, play.time / 0.8);
+    playBall.position.set(play.x * k, 0.14 + Math.sin(k * Math.PI) * 1.8 + (1 - k) * 0.6, 3.5 + (play.z - 3.5) * k);
+    if (k === 1) play.phase = 'chase';
+  } else if (play.phase === 'chase') {
+    const mine = trot(dog, play.x - 0.65, 3, dt, time);
+    const theirs = trot(f, play.x + 0.65, play.friendSpeed, dt, time);
+    if (mine || theirs) {
+      // Den som kom först tog bollen
+      play.phase = 'back';
+      play.time = 0;
+      play.mine = mine;
+      SOUND.happy();
+      burst('🎾');
+      if (mine) say('Jag tog den!');
+      else friendSays(t('Jag tog den!'));
+      if (mine) speedY = TAP_SPEED;
+      else friend.hop = 1;
+    }
+  } else {
+    // Bollen studsar upp och hundarna går tillbaka till sina platser
+    playBall.position.y = 0.14 + Math.abs(Math.sin(play.time * 6)) * Math.max(0, 0.9 - play.time);
+    if (play.time < 0.9) {
+      if (!play.mine) f.position.y = Math.sin(Math.min(1, play.time / 0.6) * Math.PI) * 0.7;
+      return;
+    }
+    playBall.visible = false;
+    const mine = trot(dog, MY_SPOT, 3, dt, time);
+    const theirs = trot(f, FRIEND_SPOT, 3, dt, time);
+    if (mine && theirs) {
+      dog.rotation.y = TOWARD_RIGHT;
+      f.rotation.y = Math.PI + 0.45;
+      f.position.y = 0;
+      play = null;
+      showPark();
+    }
+  }
+}
 function showPark() {
   el('parkButton').textContent = '🌳 ' + t('Hundparken');
   if (!friend) return;
@@ -1949,6 +2018,11 @@ function showPark() {
   el('parkCount').textContent = '💗 ' + t('Hundkompisar') + ': ' + (stats.friends || 0);
   el('greet').textContent = (friend.greeted ? '✓ ' : '👋 ') + t('Hälsa');
   el('greet').disabled = !here || friend.greeted;
+  el('greet').hidden = friend.greeted; // när man har hälsat byts knappen mot Leka
+  el('playButton').hidden = !friend.greeted;
+  el('playButton').textContent = '🎾 ' + t('Leka');
+  el('playButton').disabled = !!play;
+  el('nextFriend').disabled = !!play;
   el('nextFriend').textContent = '🐶 ' + t('Nästa hund');
   el('parkHome').textContent = '🏠 ' + t('Gå hem');
 }
@@ -1968,6 +2042,8 @@ function updatePark(dt, time) {
       friendSays(t('Hej! Jag heter {n}').replace('{n}', friend.name));
       showPark();
     }
+  } else if (play) {
+    updatePlay(dt, time);
   } else {
     // Ett glatt hopp när man hälsar
     friend.hop = Math.max(0, friend.hop - dt * 1.6);
@@ -1983,6 +2059,7 @@ function updatePark(dt, time) {
 el('runButton').addEventListener('click', startRun);
 el('parkButton').addEventListener('click', startPark);
 el('greet').addEventListener('click', greet);
+el('playButton').addEventListener('click', startPlay);
 el('nextFriend').addEventListener('click', () => { SOUND.pop(); newFriend(); });
 el('parkHome').addEventListener('click', leavePark);
 el('retry').addEventListener('click', startRun);
@@ -2067,7 +2144,13 @@ if (location.hash.startsWith('#park')) { // testläge: hundparken, #park2 = efte
   startScreen.hidden = true;
   startPark();
   friend.dog.position.x = FRIEND_SPOT + 0.001;
-  if (location.hash === '#park2') setTimeout(greet, 300);
+  if (location.hash !== '#park') setTimeout(greet, 300);
+  if (location.hash.startsWith('#park3')) { // #park34 = leken efter 40 små tidssteg
+    setTimeout(() => {
+      startPlay();
+      for (let i = 0; i < Number(location.hash[6] || 0) * 10; i++) updatePlay(0.05, i * 0.05);
+    }, 400);
+  }
 }
 if (location.hash === '#say') { // testläge: visa pratbubblan
   startScreen.hidden = true;
