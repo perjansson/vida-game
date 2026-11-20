@@ -2698,7 +2698,7 @@ renderer.setAnimationLoop(() => {
   homeGroup.visible = mode === 'dress' || mode === 'care';
   if (homeGroup.visible) updateButterflies(time);
   toyGroup.visible = mode === 'dress' || mode === 'care';
-  toyGroup.rotation.y = dog.rotation.y;
+  toyGroup.rotation.y = -0.5; // leksaken ligger still på sin plats, även när hunden snurrar eller vänder sig
   stars.position.x = camera.position.x;
   sun.position.x = dog.position.x + 3;
   sun.target.position.x = dog.position.x;
