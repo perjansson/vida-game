@@ -774,9 +774,9 @@ const HOME = [
     for (const [x, z, size] of [[-1.55, -0.95, 1], [-1.3, -0.75, 0.7], [-1.75, -0.7, 0.8]]) {
       const shroom = group(g, x, 0, z);
       shroom.scale.setScalar(size);
-      part(new THREE.CylinderGeometry(0.05, 0.065, 0.18, 8), WHITE, 0, 0.09, 0, shroom);
-      dome(shroom, mat(0xe63946), 0.15, 0.16);
-      for (const [dx, dy, dz] of [[0.07, 0.27, 0.07], [-0.08, 0.25, 0.04], [0, 0.3, -0.06]]) fluff(0.03, WHITE, dx, dy, dz, shroom);
+      // Karljohansvamp: tjock ljus fot och brun hatt utan prickar. Den är ätlig, inte giftig.
+      part(new THREE.CylinderGeometry(0.06, 0.09, 0.2, 10), mat(0xf4e7d3), 0, 0.1, 0, shroom);
+      dome(shroom, mat(0x9a5b2e), 0.16, 0.17);
     }
   }],
   ['Lykta', (g) => {
