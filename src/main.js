@@ -33,6 +33,7 @@ const TEXTS = {
     'Oj då!': 'Hups!', 'Hunden snubblade. Försök igen!': 'Koira kompastui. Yritä uudelleen!',
     'Försök igen': 'Yritä uudelleen', 'Garderoben': 'Vaatekaappi',
     'Bra sprunget!': 'Hyvin juostu!', 'Samla ben och köp kläder och leksaker': 'Kerää luita ja osta vaatteita ja leluja',
+    'Börja om från bana 1': 'Aloita alusta radalta 1', 'Säker? Tryck igen för att börja om': 'Varmasti? Paina uudelleen',
     'Köp': 'Osta', 'spring fler banor!': 'juokse lisää ratoja!', 'Boll': 'Pallo', 'Leka': 'Leiki', 'Nu behöver hunden lite omsorg': 'Nyt koira tarvitsee hoivaa',
     'Hunden är glad igen!': 'Koira on taas iloinen!',
     'Mat': 'Ruoka', 'Vatten': 'Vesi', 'Klappa': 'Silitä',
@@ -67,6 +68,7 @@ const TEXTS = {
     'Oj då!': 'Oops!', 'Hunden snubblade. Försök igen!': 'The dog tripped. Try again!',
     'Försök igen': 'Try again', 'Garderoben': 'Wardrobe',
     'Bra sprunget!': 'Well run!', 'Samla ben och köp kläder och leksaker': 'Collect bones and buy clothes and toys',
+    'Börja om från bana 1': 'Start over from level 1', 'Säker? Tryck igen för att börja om': 'Sure? Tap again to start over',
     'Köp': 'Buy', 'spring fler banor!': 'run more levels!', 'Boll': 'Ball', 'Nalle': 'Teddy', 'Leka': 'Play', 'Nu behöver hunden lite omsorg': 'Now the dog needs some care',
     'Hunden är glad igen!': 'The dog is happy again!',
     'Mat': 'Food', 'Vatten': 'Water', 'Klappa': 'Pet',
@@ -1241,6 +1243,28 @@ if (location.hash === '#run' || location.hash.startsWith('#care')) {
   }
 }
 
+// Börja om: tillbaka till bana 1 utan ben och utan köpta saker. Hunden, namnet och språket finns kvar.
+// Man måste trycka två gånger, så att det inte händer av misstag.
+const resetButton = document.getElementById('reset');
+let resetSure = false;
+function showReset() {
+  resetButton.textContent = resetSure ? '⚠️ ' + t('Säker? Tryck igen för att börja om') : '🔄 ' + t('Börja om från bana 1');
+}
+resetButton.addEventListener('click', () => {
+  if (!resetSure) {
+    resetSure = true;
+    showReset();
+    return;
+  }
+  try {
+    for (const key of ['level', 'bones', 'owned', 'outfit']) localStorage.removeItem(key);
+  } catch {}
+  location.hash = '';
+  location.reload();
+});
+refreshers.push(showReset);
+showReset();
+
 // Högtalar-knappen stänger av och sätter på ljudet
 const soundButton = document.getElementById('sound');
 soundButton.textContent = soundOn ? '🔊' : '🔇';
@@ -1253,6 +1277,8 @@ soundButton.addEventListener('click', () => {
 
 // Jordglob-knappen öppnar språkvalet igen, mitt i spelet. Kläderna och namnet finns kvar.
 document.getElementById('language').addEventListener('click', () => {
+  resetSure = false;
+  showReset();
   startScreen.hidden = false;
 });
 

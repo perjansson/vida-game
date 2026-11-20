@@ -138,6 +138,11 @@
         animation: pulse 1.2s ease-in-out infinite;
       }
       #play:active { transform: translateY(4px); box-shadow: 0 2px 0 #14532d; animation: none; }
+      #reset {
+        font-family: inherit; font-size: clamp(14px, 3.8vw, 17px); min-height: 44px; padding: 4px 14px;
+        color: #fff; background: transparent; border: 2px solid rgba(255, 255, 255, 0.6); border-radius: 14px;
+        cursor: pointer; touch-action: manipulation; -webkit-tap-highlight-color: transparent;
+      }
       @keyframes pulse { 50% { transform: scale(1.04); } }
       /* Gröna "kör"-knappar och vita vanliga knappar */
       .go, .plain {
@@ -262,6 +267,7 @@
           <button data-lang="en">🇬🇧 English</button>
         </div>
         <button id="play" data-t="Spela!">Spela!</button>
+        <button id="reset"></button>
       </div>
     </div>
     <script type="module" src="/src/main.js"></script>
