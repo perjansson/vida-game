@@ -6,11 +6,13 @@
     <title>Voffracet</title>
     <style>
       [hidden] { display: none !important; }
+      body, button, input { font-family: 'Fredoka', system-ui, sans-serif; font-weight: 600; }
+      h2, #info { font-weight: 700 !important; }
       html, body { margin: 0; height: 100%; overflow: hidden; background: #1b1035; }
       canvas { display: block; touch-action: none; }
       #info {
         padding: 0 12px; text-align: center;
-        font-family: 'Luckiest Guy', system-ui, sans-serif;
+        font-family: 'Fredoka', system-ui, sans-serif;
         font-size: clamp(26px, 7vw, 54px); line-height: 1.1; letter-spacing: 1px;
         color: #ffd93d;
         -webkit-text-stroke: 2px #2a1458;
@@ -26,7 +28,7 @@
       }
       #name {
         pointer-events: auto;
-        font-family: 'Luckiest Guy', system-ui, sans-serif;
+        font-family: 'Fredoka', system-ui, sans-serif;
         font-size: clamp(18px, 4.5vw, 24px); letter-spacing: 1px; text-align: center;
         width: min(50vw, 300px); min-height: 48px; box-sizing: border-box; padding: 6px 12px;
         color: #2a1458; background: #fff; border: 3px solid #2a1458; border-radius: 16px;
@@ -46,7 +48,7 @@
         padding: 8px 8px max(8px, env(safe-area-inset-bottom));
         display: flex; flex-direction: column; gap: 6px;
         background: rgba(27, 16, 53, 0.72); border-top: 3px solid #ffd93d;
-        font-family: 'Luckiest Guy', system-ui, sans-serif;
+        font-family: 'Fredoka', system-ui, sans-serif;
       }
       #wardrobe button {
         font-family: inherit; cursor: pointer; flex: none;
@@ -87,7 +89,7 @@
         display: flex; align-items: center; justify-content: center;
         padding: 12px; box-sizing: border-box; overflow-y: auto;
         background: rgba(27, 16, 53, 0.75);
-        font-family: 'Luckiest Guy', system-ui, sans-serif;
+        font-family: 'Fredoka', system-ui, sans-serif;
       }
       #start[hidden] { display: none; }
       #card {
@@ -100,6 +102,7 @@
       }
       #card .paws { font-size: clamp(22px, 5vh, 36px); line-height: 1; }
       #card h1 {
+        font-family: 'Luckiest Guy', 'Fredoka', sans-serif;
         margin: 0; text-align: center; font-weight: normal;
         font-size: clamp(38px, 12vw, 64px); line-height: 1.1; letter-spacing: 2px;
         color: #ffd93d; -webkit-text-stroke: 2px #2a1458; paint-order: stroke fill;
@@ -135,7 +138,7 @@
       @keyframes pulse { 50% { transform: scale(1.04); } }
       /* Gröna "kör"-knappar och vita vanliga knappar */
       .go, .plain {
-        pointer-events: auto; font-family: 'Luckiest Guy', system-ui, sans-serif;
+        pointer-events: auto; font-family: 'Fredoka', system-ui, sans-serif;
         font-size: clamp(17px, 4.6vw, 24px); letter-spacing: 1px;
         min-height: 48px; padding: 6px 18px; border-radius: 16px; cursor: pointer;
         touch-action: manipulation; user-select: none; -webkit-tap-highlight-color: transparent;
@@ -148,7 +151,7 @@
       #hud {
         position: fixed; top: max(12px, env(safe-area-inset-top)); left: 0; right: 0; padding: 0 14px;
         display: flex; flex-direction: column; align-items: center; gap: 8px;
-        font-family: 'Luckiest Guy', system-ui, sans-serif; pointer-events: none; user-select: none;
+        font-family: 'Fredoka', system-ui, sans-serif; pointer-events: none; user-select: none;
       }
       #hudRow { display: flex; gap: 18px; align-items: center; font-size: clamp(24px, 6vw, 36px); }
       #levelName { color: #fff; -webkit-text-stroke: 2px #2a1458; paint-order: stroke fill; letter-spacing: 1px; }
@@ -160,12 +163,12 @@
       }
       .popup {
         position: fixed; inset: 0; z-index: 5; display: flex; align-items: center; justify-content: center;
-        padding: 16px; background: rgba(27, 16, 53, 0.55); font-family: 'Luckiest Guy', system-ui, sans-serif;
+        padding: 16px; background: rgba(27, 16, 53, 0.55); font-family: 'Fredoka', system-ui, sans-serif;
       }
       .popup .box, .panel {
         display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center;
         background: linear-gradient(#5b3bb0, #3b2a6b); border: 4px solid #ffd93d;
-        font-family: 'Luckiest Guy', system-ui, sans-serif;
+        font-family: 'Fredoka', system-ui, sans-serif;
       }
       .popup .box { width: min(100%, 360px); padding: 20px; border-radius: 26px; box-shadow: 0 8px 0 #ff5fa2; }
       .popup h2, .panel h2 { margin: 0; font-weight: normal; font-size: clamp(26px, 7vw, 38px); color: #ffd93d; text-shadow: 0 3px 0 #ff5fa2; letter-spacing: 1px; }

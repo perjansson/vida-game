@@ -1,4 +1,6 @@
 import '@fontsource/luckiest-guy';
+import '@fontsource/fredoka/600.css';
+import '@fontsource/fredoka/700.css';
 import * as THREE from 'three';
 
 // Inställningar som är roliga att ändra på
