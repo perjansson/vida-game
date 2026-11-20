@@ -2602,11 +2602,11 @@ function updatePark(dt, time) {
     // Ett glatt hopp när man hälsar
     friend.hop = Math.max(0, friend.hop - dt * 1.6);
     d.position.y = Math.sin((1 - friend.hop) * Math.PI) * (friend.hop > 0 ? 0.7 : 0);
-    // En hund man har hälsat på följer med på promenaden
+    // Den andra hunden följer med på promenaden
     const dx = dog.position.x - d.position.x;
     const dz = dog.position.z - d.position.z;
     const away = Math.hypot(dx, dz);
-    if (friend.greeted && away > 1.9) {
+    if (away > 1.9) {
       const step = Math.min(away - 1.9, 3 * dt);
       d.position.x += (dx / away) * step;
       d.position.z += (dz / away) * step;
@@ -2715,7 +2715,7 @@ if (location.hash.startsWith('#park')) { // testläge: hundparken, #park2 = efte
   startScreen.hidden = true;
   startPark();
   friend.dog.position.x = friend.spot.x + 0.001;
-  if (location.hash === '#park5') { strollTo = { x: -7, z: -3.5 }; for (let i = 0; i < 60; i++) updateStroll(0.05); parkCameraX = dog.position.x + 0.8; parkCameraZ = dog.position.z; }
+  if (location.hash === '#park5') { strollTo = { x: -7, z: -3.5 }; friend.arrived = true; friend.dog.position.x = friend.spot.x; for (let i = 0; i < 60; i++) { updateStroll(0.05); updatePark(0.05, i * 0.05); } parkCameraX = dog.position.x + 0.8; parkCameraZ = dog.position.z; }
   else if (location.hash !== '#park') setTimeout(greet, 300);
   if (location.hash.startsWith('#park3')) { // #park34 = leken efter 40 små tidssteg
     setTimeout(() => {
