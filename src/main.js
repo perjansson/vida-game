@@ -8,6 +8,31 @@ const TAP_SPEED = 6; // farten uppåt när man trycker på hunden
 const BOUNCE = 0.55; // hur mycket hunden studsar mot marken (0 till 1)
 const HIT_MARGIN = 1.7; // gör det lättare att träffa hunden med fingret
 
+// ---------- Språk ----------
+// Spelet är skrivet på svenska. Här finns översättningar till andra språk.
+// Lägg till ett nytt språk genom att kopiera listan "en" och byta texterna.
+const TEXTS = {
+  en: {
+    'Klä ut hunden!': 'Dress up the dog!',
+    'Klä ut {namn}!': 'Dress up {namn}!',
+    'Skriv hundens namn': "Type the dog's name",
+    ingen: 'none',
+    '👕 Tröja': '👕 Sweater',
+    'Röd': 'Red', 'Randig': 'Striped', 'Rosa': 'Pink', 'Grön': 'Green', 'Blå': 'Blue',
+    '🎩 Hatt': '🎩 Hat',
+    'Partyhatt': 'Party hat', 'Krona': 'Crown', 'Rosett': 'Bow', 'Trollhatt': 'Wizard hat',
+    '🕶️ Glasögon': '🕶️ Glasses',
+    'Solbrillor': 'Sunglasses',
+    '🎀 Hals': '🎀 Neck',
+    'Halsband': 'Collar', 'Halsduk': 'Scarf', 'Fluga': 'Bow tie',
+  },
+};
+let lang = 'sv';
+function t(text) {
+  return (TEXTS[lang] && TEXTS[lang][text]) || text;
+}
+const refreshers = []; // funktioner som skriver om all text när språket byts
+
 // Scen, kamera och renderare
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x1b1035);
@@ -243,8 +268,9 @@ for (const kind of wardrobe) {
   const show = () => {
     kind.items.forEach((g, i) => (g.visible = i === kind.choice));
     const name = kind.choice < 0 ? 'ingen' : kind.options[kind.choice][0];
-    button.innerHTML = `${kind.label}<small>${name}</small>`;
+    button.innerHTML = `${t(kind.label)}<small>${t(name)}</small>`;
   };
+  refreshers.push(show);
   button.addEventListener('click', () => {
     kind.choice = kind.choice + 1 >= kind.items.length ? -1 : kind.choice + 1;
     show();
@@ -290,7 +316,8 @@ const info = document.getElementById('info');
 const nameInput = document.getElementById('name');
 function showName() {
   const name = nameInput.value.trim();
-  info.textContent = name ? `Klä ut ${name}!` : 'Klä ut hunden!';
+  info.textContent = name ? t('Klä ut {namn}!').replace('{namn}', name) : t('Klä ut hunden!');
+  nameInput.placeholder = t('Skriv hundens namn');
   try { localStorage.setItem('dogName', name); } catch {}
 }
 try { nameInput.value = localStorage.getItem('dogName') || ''; } catch {}
@@ -299,6 +326,19 @@ nameInput.addEventListener('keydown', (event) => {
   if (event.key === 'Enter') nameInput.blur(); // stäng tangentbordet på mobilen
 });
 showName();
+refreshers.push(showName);
+
+// Startskärmen: välj språk först, sedan börjar spelet
+const startScreen = document.getElementById('start');
+for (const button of startScreen.querySelectorAll('button')) {
+  button.addEventListener('click', () => {
+    lang = button.dataset.lang;
+    document.documentElement.lang = lang;
+    for (const refresh of refreshers) refresh();
+    startScreen.hidden = true;
+    speedY = TAP_SPEED; // hunden hoppar av glädje när spelet börjar
+  });
+}
 
 // Anpassa till skärmens storlek, både stående och liggande
 function resize() {
