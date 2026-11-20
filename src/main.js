@@ -174,13 +174,23 @@ fluff(0.21, FUR, 0.38, 0.76, 0, smoothBody); // hals
 const legs = group(dog);
 const fluffyLegs = group(legs);
 const smoothLegs = group(legs);
-for (const x of [-0.3, 0.3]) {
-  for (const z of [-0.17, 0.17]) {
-    fluff(0.13, LEG_FUR, x, 0.26, z, fluffyLegs);
-    fluff(0.12, LEG_FUR, x + 0.03, 0.1, z, fluffyLegs);
-    part(new THREE.CylinderGeometry(0.08, 0.065, 0.32, 10), LEG_FUR, x, 0.2, z, smoothLegs);
-    fluff(0.085, LEG_FUR, x + 0.04, 0.06, z, smoothLegs).scale.y = 0.06;
-  }
+// Varje ben sitter i en "höft" som kan svänga fram och tillbaka när hunden springer.
+// Skorna får egna höfter på samma ställe, så de följer med benen.
+const PAWS = [[-0.3, -0.17], [-0.3, 0.17], [0.3, -0.17], [0.3, 0.17]]; // två bakben, två framben
+const HIP = 0.36; // höftens höjd över marken
+const hips = [[], [], [], []];
+function hip(parent, i) {
+  const g = group(parent, PAWS[i][0], HIP, PAWS[i][1]);
+  hips[i].push(g);
+  return g;
+}
+for (let i = 0; i < 4; i++) {
+  const fluffyLeg = hip(fluffyLegs, i);
+  fluff(0.13, LEG_FUR, 0, 0.26 - HIP, 0, fluffyLeg);
+  fluff(0.12, LEG_FUR, 0.03, 0.1 - HIP, 0, fluffyLeg);
+  const smoothLeg = hip(smoothLegs, i);
+  part(new THREE.CylinderGeometry(0.08, 0.065, 0.32, 10), LEG_FUR, 0, 0.2 - HIP, 0, smoothLeg);
+  fluff(0.085, LEG_FUR, 0.04, 0.06 - HIP, 0, smoothLeg).scale.y = 0.06;
 }
 
 // Huvud
@@ -277,8 +287,6 @@ function sweater(parent, m, stripeColor) {
 function dome(parent, m, radius, y) {
   return part(new THREE.SphereGeometry(radius, 20, 10, 0, Math.PI * 2, 0, Math.PI / 2), m, 0, y, 0, parent);
 }
-const PAWS = [[-0.3, -0.17], [-0.3, 0.17], [0.3, -0.17], [0.3, 0.17]];
-
 const wardrobe = [
   {
     id: 'sweater', icon: '👕', parent: upper,
@@ -356,15 +364,17 @@ const wardrobe = [
     id: 'shoes', icon: '👟', parent: legs,
     options: [
       ['Stövlar', 0xffd93d, (g, m) => {
-        for (const [x, z] of PAWS) {
-          part(new THREE.CylinderGeometry(0.145, 0.145, 0.2, 12), m, x, 0.12, z, g);
-          fluff(1, m, x + 0.08, 0.07, z, g).scale.set(0.14, 0.07, 0.14);
+        for (let i = 0; i < 4; i++) {
+          const leg = hip(g, i);
+          part(new THREE.CylinderGeometry(0.145, 0.145, 0.2, 12), m, 0, 0.12 - HIP, 0, leg);
+          fluff(1, m, 0.08, 0.07 - HIP, 0, leg).scale.set(0.14, 0.07, 0.14);
         }
       }],
       ['Strumpor', 0xff8fc7, (g, m) => {
-        for (const [x, z] of PAWS) {
-          part(new THREE.CylinderGeometry(0.145, 0.145, 0.22, 12), m, x, 0.16, z, g);
-          part(new THREE.CylinderGeometry(0.15, 0.15, 0.04, 12), mat(0xffffff), x, 0.26, z, g);
+        for (let i = 0; i < 4; i++) {
+          const leg = hip(g, i);
+          part(new THREE.CylinderGeometry(0.145, 0.145, 0.22, 12), m, 0, 0.16 - HIP, 0, leg);
+          part(new THREE.CylinderGeometry(0.15, 0.15, 0.04, 12), mat(0xffffff), 0, 0.26 - HIP, 0, leg);
         }
       }],
     ],
@@ -649,8 +659,8 @@ const RUN_JUMP = 7; // hur högt hunden hoppar på banan
 const NIGHT = 0x1b1035;
 const THEMES = [
   { sky: 0x8fd3ff, ground: 0x6cc24a, track: 0xd9b382, bush: 0x2e9e4f, obstacle: 0x8a5a3a }, // parken
-  { sky: 0xffd9a0, ground: 0xf2d28a, track: 0xfbe8b5, bush: 0xff8fc7, obstacle: 0xe63946 }, // stranden
-  { sky: 0xcfe8ff, ground: 0xffffff, track: 0xdcecff, bush: 0x9ed8ff, obstacle: 0x2a9dff }, // snön
+  { sky: 0xffd9a0, ground: 0xf0d48f, track: 0xcfa25e, bush: 0xff8fc7, obstacle: 0xe63946 }, // stranden
+  { sky: 0xcfe8ff, ground: 0xeef6ff, track: 0xb9d6f2, bush: 0x9ed8ff, obstacle: 0x2a9dff }, // snön
   { sky: NIGHT, ground: 0x3b2a6b, track: 0x5b3bb0, bush: 0xffd93d, obstacle: 0xff5fa2 }, // rymden
 ];
 let mode = 'dress'; // 'dress' = garderoben, 'run' = springa, 'lost' = snubblat, 'care' = ta hand om hunden
@@ -924,6 +934,15 @@ renderer.setAnimationLoop(() => {
   const stride = running ? Math.sin(time * runSpeed * 2.4) : 0;
   upper.position.y = upperBase + (inAir ? 0 : Math.abs(stride) * 0.06);
   dog.rotation.z = running ? (inAir ? 0.18 : stride * 0.07) : 0;
+
+  // Benen svänger: bakbenen och frambenen i otakt, som en galopp. I luften sträcker hunden ut sig.
+  const phase = time * runSpeed * 2.4;
+  hips.forEach((sameLeg, i) => {
+    const front = i >= 2;
+    let swing = 0;
+    if (running) swing = inAir ? (front ? 0.9 : -0.9) : Math.sin(phase + (front ? Math.PI : 0) + (i % 2) * 0.6) * 0.75;
+    for (const h of sameLeg) h.rotation.z = swing;
+  });
 
   if (mode === 'run' || mode === 'lost') {
     // Kameran springer med snett bakom hunden, så att man ser kroppen och hindren framför
