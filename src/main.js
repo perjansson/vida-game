@@ -621,9 +621,10 @@ const BREEDS = [
     ears: 'flap', tail: 'bushy', fur: 0xe2a94f, legFur: 0xe2a94f, earFur: 0xc98a3a, muzzle: 0xf0c880 },
   { name: 'Chihuahua', size: 0.62, legs: 0.85, snout: [0.8, 0.85, 0.85], eyes: 1.4,
     ears: 'pointy', earSize: 1.3, tail: 'long', fur: 0xd9a066, legFur: 0xd9a066, earFur: 0xc48a52, muzzle: 0xf3dcc0 },
-  // Terriern är gratis (den har inget pris i PRICE): liten, vit med bruna öron och lurvigt skägg
-  { name: 'Terrier', size: 0.78, legs: 0.9, cheeks: true, snout: [1.15, 0.95, 0.9],
-    ears: 'flap', earSize: 0.8, tail: 'long', fur: 0xffffff, legFur: 0xffffff, earFur: 0xa5672f, muzzle: 0xf4e7d3 },
+  // Terriern är gratis (den har inget pris i PRICE). Den liknar en borderterrier:
+  // ljusbrun sträv päls, mörkare nos och små mörka vikta öron
+  { name: 'Terrier', size: 0.8, legs: 1.0, cheeks: true, snout: [0.95, 0.95, 0.95],
+    ears: 'flap', earSize: 0.7, tail: 'long', fur: 0xc99a62, legFur: 0xd6ad7a, earFur: 0x5e4330, muzzle: 0x54402f },
 ];
 let breedIndex = 0;
 try { breedIndex = Number(localStorage.getItem('breed')) || 0; } catch {}
