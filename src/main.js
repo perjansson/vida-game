@@ -71,6 +71,7 @@ const TEXTS = {
     'Hundparken': 'Koirapuisto', 'Titta, där kommer en hund!': 'Katso, sieltä tulee koira!', 'Hundkompisar': 'Koirakaverit',
     'Hälsa': 'Tervehdi', 'Nästa hund': 'Seuraava koira', 'Gå hem': 'Mene kotiin', 'Hej! Jag heter {n}': 'Hei! Olen {n}',
     'Vi är kompisar nu!': 'Nyt ollaan kavereita!', 'Vill du leka?': 'Leikitäänkö?', 'Hej kompis!': 'Hei kaveri!', 'Voff voff!': 'Hau hau!',
+    'Simma': 'Ui', 'Tryck på pilarna för att styra hunden': 'Ohjaa koiraa nuolilla', 'Vad skönt det var!': 'Olipa ihanaa!', 'Simmare': 'Uimari', 'Simma i havet': 'Ui meressä',
     'Jag tog den!': 'Sain sen!', 'Hundkompis': 'Koirakaveri', 'Hälsa på fem hundar i parken': 'Tervehdi viittä koiraa puistossa',
   },
   en: {
@@ -130,6 +131,7 @@ const TEXTS = {
     'Hundparken': 'Dog park', 'Titta, där kommer en hund!': 'Look, here comes a dog!', 'Hundkompisar': 'Dog friends',
     'Hälsa': 'Say hi', 'Nästa hund': 'Next dog', 'Gå hem': 'Go home', 'Hej! Jag heter {n}': "Hi! I'm {n}",
     'Vi är kompisar nu!': 'We are friends now!', 'Vill du leka?': 'Want to play?', 'Hej kompis!': 'Hi friend!', 'Voff voff!': 'Woof woof!',
+    'Simma': 'Swim', 'Tryck på pilarna för att styra hunden': 'Tap the arrows to steer the dog', 'Vad skönt det var!': 'That was lovely!', 'Simmare': 'Swimmer', 'Simma i havet': 'Swim in the sea',
     'Jag tog den!': 'I got it!', 'Hundkompis': 'Dog friend', 'Hälsa på fem hundar i parken': 'Say hi to five dogs in the park',
   },
 };
@@ -941,6 +943,7 @@ const MEDALS = [
   ['🏠', 'Hemmafixare', 'Ha tre saker i trädgården', () => placed.size >= 3],
   ['😴', 'Sjusovare', 'Låt hunden sova i korgen', () => stats.sleeps > 0],
   ['🏆', 'Mästare', 'Kom till bana 6', () => level >= 6],
+  ['🏊', 'Simmare', 'Simma i havet', () => stats.swims > 0],
   ['💗', 'Hundkompis', 'Hälsa på fem hundar i parken', () => stats.friends >= 5],
 ];
 const medals = new Set(); // namnen på medaljerna man har fått
@@ -1302,8 +1305,10 @@ const THEMES = [
   { sky: 0xcfe8ff, ground: 0xeef6ff, track: 0xb9d6f2, bush: 0x9ed8ff, obstacle: 0x2a9dff }, // snön
   { sky: NIGHT, ground: 0x3b2a6b, track: 0x5b3bb0, bush: 0xffd93d, obstacle: 0xff5fa2 }, // rymden
 ];
+let swimming = false; // sant när hunden simmar i havet
 let walking = false; // sant när man är ute på promenad i stället för att springa en bana
 const WALK_THEME = { sky: 0xffc7dd, ground: 0x8ad66f, track: 0xead2a4, bush: 0xff7fb6, obstacle: 0x8a5a3a }; // rosa kvällshimmel
+const SEA_THEME = { sky: 0x8fd3ff, ground: 0x1c78b8, track: 0x2a8fd0, bush: 0x2fa35a, obstacle: 0x9a5b2e };
 let mode = 'dress'; // 'dress' = garderoben, 'run' = springa, 'lost' = snubblat, 'care' = ta hand om hunden
 let level = 1;
 try { level = Math.max(1, Number(localStorage.getItem('level')) || 1); } catch {}
@@ -1408,6 +1413,66 @@ const OBSTACLES = [
   } },
 ];
 
+// ---------- Havet ----------
+// När hunden simmar ligger en genomskinlig vattenyta över banan, så att bara halva hunden sticker upp.
+let surface = 0.5; // hur högt vattnet står (ändras efter hur stor hunden är)
+const seaGroup = group(runWorld);
+const seaSurface = part(new THREE.PlaneGeometry(2600, 160), new THREE.MeshStandardMaterial({ color: 0x3fb4f0, roughness: 0.25, transparent: true, opacity: 0.72 }), 1250, 0, 0, seaGroup);
+seaSurface.rotation.x = -Math.PI / 2;
+seaSurface.castShadow = false;
+const SAND = mat(0xf2d79b);
+const PALM = mat(0x2fa35a);
+const seaside = []; // öar och vågor som flyttas fram när hunden har simmat förbi dem
+for (let i = 0; i < 6; i++) { // små öar med en palm
+  const island = group(seaGroup, 0, 0, i % 2 ? 7.5 : -7.5);
+  dome(island, SAND, 1.6, -0.5);
+  part(new THREE.CylinderGeometry(0.1, 0.14, 1.6, 8), TRUNK, 0, 1.4, 0, island).rotation.z = 0.15;
+  for (let k = 0; k < 5; k++) {
+    const leaf = fluff(1, PALM, -0.1 + Math.cos(k * 1.26) * 0.5, 2.15, Math.sin(k * 1.26) * 0.5, island);
+    leaf.scale.set(0.5, 0.07, 0.2);
+    leaf.rotation.y = -k * 1.26;
+  }
+  seaside.push(island);
+}
+const FOAM = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.6 });
+for (let i = 0; i < 14; i++) { // vita vågskvalp på ytan
+  const wave = part(new THREE.BoxGeometry(0.7, 0.02, 0.08), FOAM, 0, 0.02, (i % 2 ? 1 : -1) * (3 + (i % 5) * 1.3), seaGroup);
+  wave.castShadow = false;
+  seaside.push(wave);
+}
+// Sakerna man simmar runt. De är för höga att hoppa över, så man måste styra förbi.
+const RED = mat(0xe63946);
+const SEA_OBSTACLES = [
+  { half: 0.35, top: 9, tall: true, build: (g) => { // boj
+    fluff(0.36, RED, 0, 0.1, 0, g);
+    part(new THREE.CylinderGeometry(0.37, 0.37, 0.12, 16), WHITE, 0, 0.12, 0, g);
+    part(new THREE.CylinderGeometry(0.04, 0.04, 0.7, 8), WHITE, 0, 0.75, 0, g);
+    fluff(0.09, mat(0xffd93d), 0, 1.15, 0, g);
+    return (time) => (g.rotation.z = Math.sin(time * 2 + g.position.x) * 0.12);
+  } },
+  { half: 0.45, top: 9, tall: true, build: (g) => { // klippor
+    for (const [z, size] of [[-0.3, 0.42], [0.25, 0.55], [0.05, 0.3]]) fluff(size, ROCK, z * 0.4, size * 0.35, z, g).scale.y = size * 1.1;
+  } },
+  { half: 0.45, top: 9, tall: true, build: (g) => { // badring
+    const ring = part(new THREE.TorusGeometry(0.4, 0.16, 10, 24), mat(0xff8fc7), 0, 0.08, 0, g);
+    ring.rotation.x = Math.PI / 2;
+    for (let k = 0; k < 4; k++) {
+      const stripe = part(new THREE.TorusGeometry(0.4, 0.165, 10, 6, 0.35), WHITE, 0, 0.08, 0, g);
+      stripe.rotation.set(Math.PI / 2, 0, k * (Math.PI / 2));
+    }
+    return (time) => (g.rotation.y = time * 0.8);
+  } },
+  { half: 0.5, top: 9, tall: true, build: (g) => { // liten segelbåt
+    const hull = part(new THREE.CylinderGeometry(0.3, 0.2, 0.9, 12, 1), mat(0x9a5b2e), 0, 0.12, 0, g);
+    hull.rotation.z = Math.PI / 2;
+    hull.scale.set(0.7, 1, 1);
+    part(new THREE.CylinderGeometry(0.03, 0.03, 1.3, 8), WHITE, 0, 0.9, 0, g);
+    const sail = part(new THREE.ConeGeometry(0.5, 1, 3), mat(0xffd93d), -0.02, 1, 0, g);
+    sail.scale.x = 0.08;
+    return (time) => (g.rotation.x = Math.sin(time * 1.7 + g.position.x) * 0.1);
+  } },
+];
+
 // Hundben att samla på banan. Man får också ben för varje hjärta man har kvar i mål.
 let runBones = 0; // ben man har plockat på den här banan
 let lastStars = 0;
@@ -1428,6 +1493,7 @@ function addBone(x, y, z) {
 let startSpeed = 5;
 function speedAt(x) {
   if (walking) return 4.8; // promenadtakt
+  if (swimming) return 4.6; // lugn simtakt
   return Math.min(startSpeed + x * 0.02, startSpeed * 1.6, 12.5);
 }
 
@@ -1438,10 +1504,17 @@ function addObstacle(kind, x, z) {
 }
 
 function startRun() {
-  walking = false;
+  walking = swimming = false;
   beginRun();
 }
+function startSwim() {
+  walking = false;
+  swimming = true;
+  beginRun();
+  SOUND.Vatten();
+}
 function startWalk() {
+  swimming = false;
   walking = true;
   beginRun();
   SOUND.happy();
@@ -1452,7 +1525,7 @@ function beginRun() {
   stopTrying();
   showWardrobe();
   mode = 'run';
-  const theme = walking ? WALK_THEME : THEMES[(level - 1) % THEMES.length];
+  const theme = swimming ? SEA_THEME : walking ? WALK_THEME : THEMES[(level - 1) % THEMES.length];
   scene.background.setHex(theme.sky);
   runGroundMat.color.setHex(theme.ground);
   trackMat.color.setHex(theme.track);
@@ -1462,16 +1535,24 @@ function beginRun() {
   stars.visible = theme.sky === NIGHT;
   runWorld.visible = true;
 
+  // I havet står vattnet halvvägs upp på hunden, och det som flyter ligger på ytan
+  surface = swimming ? (0.5 + upperBase) * breed.size : 0;
+  seaGroup.visible = swimming;
+  seaGroup.position.y = surface;
+  obstacleGroup.position.y = surface;
+  for (const thing of roadside) thing.visible = !swimming;
+  const boneY = surface + (swimming ? 0.35 : 0.5); // så högt ligger benen man plockar
+
   // Lägg ut hindren. Högre banor är snabbare och har fler hinder.
   obstacleGroup.clear();
   obstacles = [];
   // Varje bana är längre, snabbare och har tätare mellan hindren än den förra
   startSpeed = Math.min(4.6 + level * 0.5, 10.5);
   runSpeed = startSpeed;
-  const count = walking ? 0 : Math.min(8 + level * 4, 60); // antal hinder (inga alls på promenaden)
-  const shortest = Math.max(0.9, 1.35 - level * 0.05); // kortaste tiden mellan två hinder, i sekunder
-  const extra = Math.max(0.3, 0.9 - level * 0.06); // hur mycket längre det kan vara ibland
-  const kinds = OBSTACLES.filter((kind) => level >= kind.fromLevel);
+  const count = walking ? 0 : swimming ? 18 : Math.min(8 + level * 4, 60); // antal hinder (inga alls på promenaden)
+  const shortest = swimming ? 1.3 : Math.max(0.9, 1.35 - level * 0.05); // kortaste tiden mellan två hinder, i sekunder
+  const extra = swimming ? 0.8 : Math.max(0.3, 0.9 - level * 0.06); // hur mycket längre det kan vara ibland
+  const kinds = swimming ? SEA_OBSTACLES : OBSTACLES.filter((kind) => level >= kind.fromLevel);
   boneGroup.clear();
   pickups = [];
   runBones = 0;
@@ -1492,10 +1573,10 @@ function beginRun() {
         addObstacle(kind, x, lane * LANE);
         if (jumpable && Math.random() < 0.5) addBone(x, kind.top + 0.9, lane * LANE); // ben ovanför hindret
       } else if (Math.random() < 0.5) {
-        addBone(x, 0.5, lane * LANE); // ben i den fria filen
+        addBone(x, boneY, lane * LANE); // ben i den fria filen
       }
     });
-    addBone((before + x) / 2, 0.5, lanes[0] * LANE); // ben på vägen dit
+    addBone((before + x) / 2, boneY, lanes[0] * LANE); // ben på vägen dit
   }
   if (walking) {
     // På promenaden ligger benen i en slingrande rad, och några hänger högt så att man får hoppa
@@ -1515,7 +1596,7 @@ function beginRun() {
 }
 
 function jump() {
-  if (mode === 'run' && dog.position.y < 0.02) {
+  if (mode === 'run' && !swimming && dog.position.y < 0.02) { // i vattnet simmar hunden, den hoppar inte
     speedY = RUN_JUMP;
     SOUND.jump();
   }
@@ -1557,7 +1638,7 @@ function updateRun(dt, time) {
     if (!ob.hit && close && touching) {
       ob.hit = true;
       if (safeTime <= 0) {
-        hearts -= 1;
+        if (!swimming) hearts -= 1; // i havet tappar man inga hjärtan, det plaskar bara
         safeTime = 1;
         SOUND.hit();
         showHud();
@@ -1581,9 +1662,14 @@ function updateRun(dt, time) {
   roadside.forEach((bush, i) => {
     bush.position.x = start + ((((i * 5 - start) % 80) + 80) % 80);
   });
+  if (swimming) {
+    seaside.forEach((thing, i) => {
+      thing.position.x = start + ((((i * 13 - start) % 78) + 78) % 78);
+    });
+  }
   dog.visible = safeTime <= 0 || Math.floor(safeTime * 12) % 2 === 0; // blinkar efter en krock
   progressBar.style.width = Math.min(100, (dog.position.x / goalX) * 100) + '%';
-  if (dog.position.x >= goalX) walking ? endWalk() : endRun(true);
+  if (dog.position.x >= goalX) walking ? endWalk() : swimming ? endSwim() : endRun(true);
 }
 
 function goHome() {
@@ -1594,6 +1680,22 @@ function goHome() {
   dog.visible = true;
   dog.position.set(0, 0, 0);
   dog.rotation.set(0, -0.5, 0);
+}
+function endSwim() {
+  // Upp ur vattnet och hem. Benen man hittade får man behålla.
+  bones += runBones;
+  try { localStorage.setItem('bones', bones); } catch {}
+  stats.totalBones += runBones;
+  stats.swims = (stats.swims || 0) + 1;
+  swimming = false;
+  mode = 'dress';
+  goHome();
+  speedY = TAP_SPEED;
+  burst('💦');
+  SOUND.win();
+  showMode();
+  checkMedals();
+  say('Vad skönt det var!');
 }
 function endWalk() {
   // Hem igen efter promenaden. Benen man hittade får man behålla.
@@ -1780,8 +1882,8 @@ function dogName() {
 }
 function showHud() {
   el('hearts').textContent = '❤️'.repeat(hearts) + '🤍'.repeat(3 - hearts);
-  el('levelName').textContent = walking ? '🦮 ' + t('Promenad') : t('Bana {n}').replace('{n}', level);
-  if (walking) el('hearts').textContent = '';
+  el('levelName').textContent = swimming ? '🏊 ' + t('Simma') : walking ? '🦮 ' + t('Promenad') : t('Bana {n}').replace('{n}', level);
+  if (walking || swimming) el('hearts').textContent = '';
   el('runBones').textContent = '🦴 ' + runBones;
 }
 function showMode() {
@@ -1794,7 +1896,8 @@ function showMode() {
   el('park').hidden = mode !== 'park';
   showPark();
   showHud();
-  el('hint').textContent = t('Tryck för att hoppa, svep för att byta fil');
+  el('hint').textContent = t(swimming ? 'Tryck på pilarna för att styra hunden' : 'Tryck för att hoppa, svep för att byta fil');
+  el('swimButton').textContent = '🏊 ' + t('Simma');
   el('runButton').textContent = '🏃 ' + t('Spring bana {n}!').replace('{n}', level);
   el('lostTitle').textContent = t('Oj då!');
   el('lostText').textContent = t('Hunden snubblade. Försök igen!');
@@ -2058,6 +2161,7 @@ function updatePark(dt, time) {
 
 el('runButton').addEventListener('click', startRun);
 el('parkButton').addEventListener('click', startPark);
+el('swimButton').addEventListener('click', startSwim);
 el('greet').addEventListener('click', greet);
 el('playButton').addEventListener('click', startPlay);
 el('nextFriend').addEventListener('click', () => { SOUND.pop(); newFriend(); });
@@ -2088,7 +2192,7 @@ if (test) {
   showWardrobe();
 }
 
-if (['#run', '#walk'].includes(location.hash) || location.hash.startsWith('#care')) {
+if (['#run', '#walk', '#swim'].includes(location.hash) || location.hash.startsWith('#care')) {
   startScreen.hidden = true;
   startRun();
   if (location.hash === '#run') { // visa en av varje sorts hinder på rad
@@ -2098,6 +2202,7 @@ if (['#run', '#walk'].includes(location.hash) || location.hash.startsWith('#care
     OBSTACLES.forEach((kind, i) => addObstacle({ ...kind, roll: 0 }, 3 + i * 2.2, ((i % 3) - 1) * LANE));
   }
   if (location.hash === '#walk') startWalk();
+  if (location.hash === '#swim') { startSwim(); dog.position.x = 6; }
   if (location.hash.startsWith('#care')) {
     endRun(true);
     breedIndex = Number(location.hash[6] || 0) % BREEDS.length; // #care12 = sak 1, hund 2
