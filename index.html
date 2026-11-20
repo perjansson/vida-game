@@ -163,6 +163,7 @@
         touch-action: manipulation; user-select: none; -webkit-tap-highlight-color: transparent;
       }
       .go { color: #fff; background: #2ecc71; border: 3px solid #14532d; box-shadow: 0 4px 0 #14532d; text-shadow: 0 2px 0 #14532d; }
+      #parkButton { background: #2a9dff; border-color: #123f73; box-shadow: 0 4px 0 #123f73; text-shadow: 0 2px 0 #123f73; }
       .go:active { transform: translateY(3px); box-shadow: 0 1px 0 #14532d; }
       .go:disabled { background: #9aa5a0; border-color: #555; box-shadow: 0 4px 0 #555; text-shadow: none; opacity: 0.7; }
       .plain { color: #2a1458; background: #fff; border: 3px solid #2a1458; }
@@ -198,7 +199,7 @@
         padding: 10px 10px max(10px, env(safe-area-inset-bottom));
         border-width: 4px 0 0; 
       }
-      #careButtons, #careNext { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+      #careButtons, #careNext, #parkButtons { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
       #careButtons button { font-family: inherit; cursor: pointer; touch-action: manipulation; }
       #careButtons button:disabled { opacity: 0.6; cursor: default; }
       #careButtons button.chosen:disabled { opacity: 1; }
@@ -253,12 +254,12 @@
         border: 4px solid #2a1458; box-shadow: 0 6px 0 #ff5fa2; pointer-events: none;
         font-size: clamp(18px, 5vw, 26px); font-weight: 700;
       }
-      #bubble {
+      #bubble, #friendBubble {
         position: fixed; z-index: 3; transform: translate(-50%, -100%); white-space: nowrap; pointer-events: none;
         padding: 6px 16px; border-radius: 20px; background: #fff; color: #2a1458; border: 3px solid #2a1458;
         font-size: clamp(16px, 4.4vw, 22px);
       }
-      #bubble::after { /* den lilla spetsen som pekar ner mot hunden */
+      #bubble::after, #friendBubble::after { /* den lilla spetsen som pekar ner mot hunden */
         content: ''; position: absolute; left: 50%; bottom: -11px; width: 16px; height: 16px; margin-left: -8px;
         background: #fff; border-right: 3px solid #2a1458; border-bottom: 3px solid #2a1458; transform: rotate(45deg);
       }
@@ -272,6 +273,7 @@
         <button id="language" aria-label="Byt språk">🌍</button>
         <button id="sound" aria-label="Ljud av eller på">🔊</button>
         <button id="runButton" class="go"></button>
+        <button id="parkButton" class="go"></button>
         <span id="boneCount" class="count"></span>
         <button id="medalButton" class="count"></button>
       </div>
@@ -308,6 +310,17 @@
         <button id="careHome" class="plain"></button>
       </div>
     </div>
+    <div id="park" class="panel" hidden>
+      <h2 id="parkTitle"></h2>
+      <p id="parkText"></p>
+      <p id="parkCount"></p>
+      <div id="parkButtons">
+        <button id="greet" class="go"></button>
+        <button id="nextFriend" class="plain"></button>
+        <button id="parkHome" class="plain"></button>
+      </div>
+    </div>
+    <div id="friendBubble" hidden></div>
     <div id="medals" class="popup" hidden>
       <div class="box">
         <h2 id="medalTitle"></h2>

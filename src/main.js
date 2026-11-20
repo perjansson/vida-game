@@ -68,6 +68,10 @@ const TEXTS = {
     'Solbrillor': 'Aurinkolasit',
     '🎀 Hals': '🎀 Kaula',
     'Halsband': 'Kaulapanta', 'Halsduk': 'Kaulaliina', 'Fluga': 'Solmuke',
+    'Hundparken': 'Koirapuisto', 'Titta, där kommer en hund!': 'Katso, sieltä tulee koira!', 'Hundkompisar': 'Koirakaverit',
+    'Hälsa': 'Tervehdi', 'Nästa hund': 'Seuraava koira', 'Gå hem': 'Mene kotiin', 'Hej! Jag heter {n}': 'Hei! Olen {n}',
+    'Vi är kompisar nu!': 'Nyt ollaan kavereita!', 'Vill du leka?': 'Leikitäänkö?', 'Hej kompis!': 'Hei kaveri!', 'Voff voff!': 'Hau hau!',
+    'Hundkompis': 'Koirakaveri', 'Hälsa på fem hundar i parken': 'Tervehdi viittä koiraa puistossa',
   },
   en: {
     'Klä ut hunden!': 'Dress up the dog!',
@@ -123,6 +127,10 @@ const TEXTS = {
     'Solbrillor': 'Sunglasses',
     '🎀 Hals': '🎀 Neck',
     'Halsband': 'Collar', 'Halsduk': 'Scarf', 'Fluga': 'Bow tie',
+    'Hundparken': 'Dog park', 'Titta, där kommer en hund!': 'Look, here comes a dog!', 'Hundkompisar': 'Dog friends',
+    'Hälsa': 'Say hi', 'Nästa hund': 'Next dog', 'Gå hem': 'Go home', 'Hej! Jag heter {n}': "Hi! I'm {n}",
+    'Vi är kompisar nu!': 'We are friends now!', 'Vill du leka?': 'Want to play?', 'Hej kompis!': 'Hi friend!', 'Voff voff!': 'Woof woof!',
+    'Hundkompis': 'Dog friend', 'Hälsa på fem hundar i parken': 'Say hi to five dogs in the park',
   },
 };
 let lang = 'sv';
@@ -321,6 +329,7 @@ const EARS = {
 
 // Svans i fyra sorter
 const tail = group(upper, -0.5, 0.8, 0);
+tail.name = 'tail'; // namnet gör att man hittar svansen på en kopia av hunden
 const TAILS = { pom: group(tail), long: group(tail), curl: group(tail), bushy: group(tail) };
 fluff(0.09, FUR, -0.06, 0.1, 0, TAILS.pom);
 fluff(0.15, FUR, -0.1, 0.26, 0, TAILS.pom);
@@ -918,7 +927,7 @@ function updateSleep(dt, time) {
 
 // ---------- Medaljer ----------
 // Varje medalj: [bild, namn, vad man ska göra, och ett test som säger om man har klarat det]
-const stats = { perfect: 0, totalBones: 0, walks: 0, sleeps: 0 };
+const stats = { perfect: 0, totalBones: 0, walks: 0, sleeps: 0, friends: 0 };
 try { Object.assign(stats, JSON.parse(localStorage.getItem('stats')) || {}); } catch {}
 const ownedOf = (names) => names.filter((name) => PRICE[name] && owned.has(name)).length;
 const MEDALS = [
@@ -932,6 +941,7 @@ const MEDALS = [
   ['🏠', 'Hemmafixare', 'Ha tre saker i trädgården', () => placed.size >= 3],
   ['😴', 'Sjusovare', 'Låt hunden sova i korgen', () => stats.sleeps > 0],
   ['🏆', 'Mästare', 'Kom till bana 6', () => level >= 6],
+  ['💗', 'Hundkompis', 'Hälsa på fem hundar i parken', () => stats.friends >= 5],
 ];
 const medals = new Set(); // namnen på medaljerna man har fått
 try { for (const name of JSON.parse(localStorage.getItem('medals')) || []) medals.add(name); } catch {}
@@ -989,7 +999,7 @@ function sayOneOf(...texts) {
 }
 function updateBubble(dt) {
   bubbleTime -= dt;
-  bubble.hidden = bubbleTime <= 0 || (mode !== 'dress' && mode !== 'care');
+  bubble.hidden = bubbleTime <= 0 || (mode !== 'dress' && mode !== 'care' && mode !== 'park');
   if (bubble.hidden) return;
   // Räkna ut var på skärmen hundens huvud är, och lägg bubblan strax ovanför
   head.getWorldPosition(bubblePoint);
@@ -1781,6 +1791,8 @@ function showMode() {
   el('controls').hidden = mode !== 'run';
   el('lost').hidden = mode !== 'lost';
   el('care').hidden = mode !== 'care';
+  el('park').hidden = mode !== 'park';
+  showPark();
   showHud();
   el('hint').textContent = t('Tryck för att hoppa, svep för att byta fil');
   el('runButton').textContent = '🏃 ' + t('Spring bana {n}!').replace('{n}', level);
@@ -1831,7 +1843,148 @@ function showMode() {
   el('nextLevel').disabled = !allDone;
   el('careHome').textContent = '👗 ' + t('Garderoben');
 }
+// ---------- Hundparken ----------
+// I parken träffar man andra hundar. De styrs av spelet, inte av andra spelare.
+const FRIEND_NAMES = ['Bella', 'Molly', 'Charlie', 'Ludde', 'Sigge', 'Doris', 'Morris', 'Wilma', 'Zorro', 'Nala', 'Tusse', 'Ronja', 'Milo', 'Bosse', 'Lova', 'Stina'];
+const MY_SPOT = -0.95; // här står min hund
+const FRIEND_SPOT = 1.05; // hit går den andra hunden
+const parkGroup = group(scene);
+parkGroup.visible = false;
+const LEAVES = mat(0x2fa35a);
+for (const [x, z, size] of [[-4.2, -3.6, 1.2], [3.6, -4.2, 1.4], [0.2, -5.5, 1.1], [-7.5, -5, 1.3], [7.5, -4.6, 1.2]]) {
+  part(new THREE.CylinderGeometry(0.16 * size, 0.22 * size, 1.4 * size, 8), TRUNK, x, 0.7 * size, z, parkGroup);
+  fluff(0.95 * size, LEAVES, x, 1.9 * size, z, parkGroup);
+  fluff(0.65 * size, LEAVES, x + 0.6 * size, 1.5 * size, z + 0.2, parkGroup);
+}
+for (const [x, z] of [[-2.2, -2.6], [2.4, -2.9], [5.2, -2.4], [-5.6, -2.7]]) fluff(0.45, LEAVES, x, 0.3, z, parkGroup);
+// En parkbänk
+const bench = group(parkGroup, -2.9, 0, -2.1);
+const WOOD = mat(0xb5793f);
+part(new THREE.BoxGeometry(1.5, 0.08, 0.45), WOOD, 0, 0.45, 0, bench);
+part(new THREE.BoxGeometry(1.5, 0.4, 0.07), WOOD, 0, 0.8, -0.2, bench);
+for (const x of [-0.6, 0.6]) part(new THREE.BoxGeometry(0.08, 0.45, 0.4), TRUNK, x, 0.22, 0, bench);
+
+let friend = null; // den andra hunden: { dog, tail, name, breed, greeted, time }
+const friendBubble = el('friendBubble');
+let friendBubbleTime = 0;
+function friendSays(text) {
+  friendBubble.textContent = text;
+  friendBubbleTime = 2.8;
+}
+function removeFriend() {
+  if (!friend) return;
+  scene.remove(friend.dog);
+  for (const m of friend.materials) m.dispose();
+  friend = null;
+}
+function newFriend() {
+  removeFriend();
+  // Klä om min hund till en annan hund en kort stund, ta en kopia, och byt sedan tillbaka
+  const mine = { breed: breedIndex, outfit: wardrobe.map((kind) => [kind.choice, kind.color]) };
+  const others = BREEDS.map((b, i) => i).filter((i) => i !== myBreed && i !== lastFriendBreed);
+  breedIndex = lastFriendBreed = others[Math.floor(Math.random() * others.length)];
+  showBreed();
+  for (const kind of wardrobe) {
+    const choice = Math.random() < 0.5 ? -1 : Math.floor(Math.random() * kind.options.length);
+    wear(kind, choice, COLORS[Math.floor(Math.random() * COLORS.length)]);
+  }
+  const copy = dog.clone();
+  const copies = new Map(); // kopian får egna färger, annars byter den färg när min hund gör det
+  copy.traverse((o) => {
+    if (!o.material) return;
+    if (!copies.has(o.material)) copies.set(o.material, o.material.clone());
+    o.material = copies.get(o.material);
+  });
+  const friendBreed = breed;
+  breedIndex = mine.breed;
+  showBreed();
+  wardrobe.forEach((kind, i) => wear(kind, ...mine.outfit[i]));
+
+  let name = FRIEND_NAMES[Math.floor(Math.random() * FRIEND_NAMES.length)];
+  if (name === dogName()) name = 'Kompis';
+  copy.position.set(7, 0, 0.2);
+  copy.rotation.set(0, Math.PI + 0.45, 0);
+  scene.add(copy);
+  friend = { dog: copy, tail: copy.getObjectByName('tail'), materials: [...copies.values()], name, breed: friendBreed, greeted: false, time: 0, hop: 0 };
+  showPark();
+}
+let lastFriendBreed = -1;
+function startPark() {
+  stopTrying();
+  SOUND.pop();
+  mode = 'park';
+  dog.position.set(MY_SPOT, 0, 0);
+  dog.rotation.set(0, -0.3, 0);
+  speedY = 0;
+  newFriend();
+  showMode();
+}
+function leavePark() {
+  removeFriend();
+  friendBubbleTime = 0;
+  mode = 'dress';
+  goHome();
+  showMode();
+}
+function greet() {
+  if (!friend || friend.greeted || friend.dog.position.x > FRIEND_SPOT + 0.01) return;
+  friend.greeted = true;
+  friend.hop = 1;
+  speedY = TAP_SPEED;
+  SOUND.bark();
+  SOUND.happy();
+  burst('💗');
+  sayOneOf('Voff voff!', 'Vill du leka?', 'Hej kompis!');
+  friendSays(t('Vi är kompisar nu!'));
+  stats.friends = (stats.friends || 0) + 1;
+  checkMedals();
+  showPark();
+}
+function showPark() {
+  el('parkButton').textContent = '🌳 ' + t('Hundparken');
+  if (!friend) return;
+  const here = friend.dog.position.x <= FRIEND_SPOT + 0.01;
+  el('parkTitle').textContent = '🌳 ' + t('Hundparken');
+  el('parkText').textContent = !here ? t('Titta, där kommer en hund!') : `${friend.name} · ${t(friend.breed.name)}`;
+  el('parkCount').textContent = '💗 ' + t('Hundkompisar') + ': ' + (stats.friends || 0);
+  el('greet').textContent = (friend.greeted ? '✓ ' : '👋 ') + t('Hälsa');
+  el('greet').disabled = !here || friend.greeted;
+  el('nextFriend').textContent = '🐶 ' + t('Nästa hund');
+  el('parkHome').textContent = '🏠 ' + t('Gå hem');
+}
+function updatePark(dt, time) {
+  friendBubbleTime -= dt;
+  friendBubble.hidden = friendBubbleTime <= 0 || !friend;
+  if (!friend) return;
+  const d = friend.dog;
+  friend.time += dt;
+  if (d.position.x > FRIEND_SPOT) {
+    // Hunden skuttar in i parken
+    d.position.x = Math.max(FRIEND_SPOT, d.position.x - 3.2 * dt);
+    d.position.y = Math.abs(Math.sin(friend.time * 9)) * 0.22;
+    if (d.position.x === FRIEND_SPOT) {
+      d.position.y = 0;
+      SOUND.bark();
+      friendSays(t('Hej! Jag heter {n}').replace('{n}', friend.name));
+      showPark();
+    }
+  } else {
+    // Ett glatt hopp när man hälsar
+    friend.hop = Math.max(0, friend.hop - dt * 1.6);
+    d.position.y = Math.sin((1 - friend.hop) * Math.PI) * (friend.hop > 0 ? 0.7 : 0);
+  }
+  if (friend.tail) friend.tail.rotation.x = Math.sin(time * (friend.greeted ? 22 : 11) + 1) * 0.6;
+  if (friendBubble.hidden) return;
+  bubblePoint.set(d.position.x, d.position.y + 1.75 * friend.breed.size, d.position.z).project(camera);
+  friendBubble.style.left = Math.min(Math.max(((bubblePoint.x + 1) / 2) * window.innerWidth, 90), window.innerWidth - 90) + 'px';
+  friendBubble.style.top = Math.max(((1 - bubblePoint.y) / 2) * window.innerHeight, 60) + 'px';
+}
+
 el('runButton').addEventListener('click', startRun);
+el('parkButton').addEventListener('click', startPark);
+el('greet').addEventListener('click', greet);
+el('nextFriend').addEventListener('click', () => { SOUND.pop(); newFriend(); });
+el('parkHome').addEventListener('click', leavePark);
 el('retry').addEventListener('click', startRun);
 el('nextLevel').addEventListener('click', startRun);
 for (const id of ['lostHome', 'careHome']) {
@@ -1910,6 +2063,12 @@ soundButton.addEventListener('click', () => {
   SOUND.pop();
 });
 
+if (location.hash.startsWith('#park')) { // testläge: hundparken, #park2 = efter att man har hälsat
+  startScreen.hidden = true;
+  startPark();
+  friend.dog.position.x = FRIEND_SPOT + 0.001;
+  if (location.hash === '#park2') setTimeout(greet, 300);
+}
 if (location.hash === '#say') { // testläge: visa pratbubblan
   startScreen.hidden = true;
   say('Ska vi springa?');
@@ -2016,13 +2175,16 @@ renderer.setAnimationLoop(() => {
     const targetY = Math.max(1, dog.position.y + DOG_CENTER);
     cameraY += (targetY - cameraY) * Math.min(1, dt * 5);
     // När man tar hand om hunden backar kameran och tittar lite lägre, så att skålarna syns
-    const caring = mode === 'care';
+    const caring = mode === 'care' || mode === 'park';
     const low = lift + (caring ? 0.55 : 0);
-    camera.position.set(caring ? 0.4 : 0, cameraY + 1 - low, dressZ + (caring ? 1.3 : 0));
-    camera.lookAt(caring ? 0.4 : 0, cameraY - low, 0);
+    const side = mode === 'care' ? 0.4 : 0;
+    camera.position.set(side, cameraY + 1 - low, dressZ + (caring ? 1.3 : 0));
+    camera.lookAt(side, cameraY - low, 0);
   }
   updateLeash();
   updateBubble(dt);
+  updatePark(dt, time);
+  parkGroup.visible = mode === 'park';
   homeGroup.visible = mode === 'dress' || mode === 'care';
   if (homeGroup.visible) updateButterflies(time);
   toyGroup.visible = mode === 'dress' || mode === 'care';
