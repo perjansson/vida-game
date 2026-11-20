@@ -77,6 +77,7 @@ const TEXTS = {
     'Kalas': 'Juhlat', 'Hurra, jag fyller år!': 'Hurraa, minulla on synttärit!', 'Tack för kalaset!': 'Kiitos juhlista!', 'Vilken bana!': 'Mikä rata!', 'Agilitystjärna': 'Agilitytähti', 'Spring agilitybanan i parken': 'Juokse agilityrata puistossa',
     'Gå med piltangenterna eller tryck i gräset': 'Kävele nuolinäppäimillä tai napauta ruohoa',
     'Nu åker jag!': 'Nyt mennään!', 'Högre!': 'Korkeammalle!', 'Wiii!': 'Jiihaa!', 'Lekplatsproffs': 'Leikkipuiston mestari', 'Åk något på lekplatsen i parken': 'Kokeile jotain leikkipuistossa', 'Hopp hopp!': 'Hyppy hyppy!', 'Snurr snurr!': 'Pyöri pyöri!', 'Min tur!': 'Minun vuoro!', 'Köp glass': 'Osta jäätelö', 'Mums, glass!': 'Nam, jäätelöä!', 'Jag vill också ha!': 'Minäkin haluan!', 'Glassälskare': 'Jäätelön ystävä', 'Köp en glass i kiosken': 'Osta jäätelö kioskista', 'Dykare': 'Sukeltaja', 'Dyk ner i havet': 'Sukella mereen', 'Dyk': 'Sukella', 'Upp': 'Ylös', 'Blubb blubb!': 'Pulp pulp!', 'Ahh, luft!': 'Ahh, ilmaa!',
+    'Kör bil': 'Aja autoa', 'MATAFFÄR': 'RUOKAKAUPPA', 'Jag behöver {n} hundben först!': 'Tarvitsen ensin {n} luuta!', 'Nu har vi handlat mat!': 'Nyt on ruokaostokset tehty!', 'Svep eller tryck på pilarna för att byta fil': 'Vaihda kaistaa pyyhkäisemällä tai nuolilla', 'Bilförare': 'Autoilija', 'Kör bil till mataffären': 'Aja autolla ruokakauppaan',
     'Jag tog den!': 'Sain sen!', 'Hundkompis': 'Koirakaveri', 'Hälsa på fem hundar i parken': 'Tervehdi viittä koiraa puistossa',
   },
   en: {
@@ -142,6 +143,7 @@ const TEXTS = {
     'Kalas': 'Party', 'Hurra, jag fyller år!': "Hooray, it's my birthday!", 'Tack för kalaset!': 'Thanks for the party!', 'Vilken bana!': 'What a course!', 'Agilitystjärna': 'Agility star', 'Spring agilitybanan i parken': 'Run the agility course in the park',
     'Gå med piltangenterna eller tryck i gräset': 'Walk with the arrow keys or tap the grass',
     'Nu åker jag!': 'Here I go!', 'Högre!': 'Higher!', 'Wiii!': 'Wheee!', 'Lekplatsproffs': 'Playground pro', 'Åk något på lekplatsen i parken': 'Try something at the playground', 'Hopp hopp!': 'Boing boing!', 'Snurr snurr!': 'Round and round!', 'Min tur!': 'My turn!', 'Köp glass': 'Buy ice cream', 'Mums, glass!': 'Yum, ice cream!', 'Jag vill också ha!': 'I want one too!', 'Glassälskare': 'Ice cream lover', 'Köp en glass i kiosken': 'Buy an ice cream at the kiosk', 'Dykare': 'Diver', 'Dyk ner i havet': 'Dive down in the sea', 'Dyk': 'Dive', 'Upp': 'Up', 'Blubb blubb!': 'Glub glub!', 'Ahh, luft!': 'Ahh, air!',
+    'Kör bil': 'Drive', 'MATAFFÄR': 'FOOD SHOP', 'Jag behöver {n} hundben först!': 'I need {n} bones first!', 'Nu har vi handlat mat!': 'Now we have bought food!', 'Svep eller tryck på pilarna för att byta fil': 'Swipe or tap the arrows to change lane', 'Bilförare': 'Driver', 'Kör bil till mataffären': 'Drive the car to the food shop',
     'Jag tog den!': 'I got it!', 'Hundkompis': 'Dog friend', 'Hälsa på fem hundar i parken': 'Say hi to five dogs in the park',
   },
 };
@@ -1033,6 +1035,7 @@ const MEDALS = [
   ['😴', 'Sjusovare', 'Låt hunden sova i korgen', () => stats.sleeps > 0],
   ['🏆', 'Mästare', 'Kom till bana 6', () => level >= 6],
   ['🛝', 'Lekplatsproffs', 'Åk något på lekplatsen i parken', () => stats.rides > 0],
+  ['🚗', 'Bilförare', 'Kör bil till mataffären', () => stats.drives > 0],
   ['🍦', 'Glassälskare', 'Köp en glass i kiosken', () => stats.ices > 0],
   ['🤿', 'Dykare', 'Dyk ner i havet', () => stats.dives > 0],
   ['🏅', 'Agilitystjärna', 'Spring agilitybanan i parken', () => stats.agility > 0],
@@ -1419,6 +1422,7 @@ const THEMES = [
   { sky: 0xcfe8ff, ground: 0xeef6ff, track: 0xb9d6f2, bush: 0x9ed8ff, obstacle: 0x2a9dff }, // snön
   { sky: NIGHT, ground: 0x3b2a6b, track: 0x5b3bb0, bush: 0xffd93d, obstacle: 0xff5fa2 }, // rymden
 ];
+let driving = false; // sant när hunden kör bil till mataffären
 let agility = false; // sant när hunden springer agilitybanan
 let walking = false; // sant när man är ute på promenad i stället för att springa en bana
 const WALK_THEME = { sky: 0xffc7dd, ground: 0x8ad66f, track: 0xead2a4, bush: 0xff7fb6, obstacle: 0x8a5a3a }; // rosa kvällshimmel
@@ -1779,6 +1783,103 @@ const steerKey = (code) => (['ArrowLeft', 'KeyA'].includes(code) ? -1 : ['ArrowR
 window.addEventListener('keydown', (event) => { if (mode === 'swim' && steerKey(event.code)) steer = steerKey(event.code); });
 window.addEventListener('keyup', (event) => { if (steerKey(event.code) === steer) steer = 0; });
 
+// ---------- Bilen ----------
+// När man har samlat många hundben får hunden köra bil till mataffären.
+const CAR_BONES = 2000; // så många hundben måste man ha för att få köra
+const ROAD_THEME = { sky: 0x9fdcff, ground: 0x7fd96a, track: 0x5b5b66, bush: 0x2fa35a, obstacle: 0x8a5a3a };
+// Bilen sitter fast på hunden, så att den följer med och blir lagom stor för varje hundras
+const car = group(dog);
+car.visible = false;
+part(new THREE.BoxGeometry(1.7, 0.42, 0.98), RED, 0, 0.31, 0, car);
+part(new THREE.BoxGeometry(0.5, 0.12, 0.98), RED, 0.6, 0.58, 0, car); // motorhuv
+part(new THREE.BoxGeometry(0.06, 0.34, 0.9), new THREE.MeshStandardMaterial({ color: 0xbfe9ff, transparent: true, opacity: 0.55 }), 0.36, 0.8, 0, car).rotation.z = 0.3; // vindruta
+part(new THREE.BoxGeometry(0.1, 0.12, 1.04), WHITE, 0.86, 0.2, 0, car); // stötfångare
+part(new THREE.BoxGeometry(0.1, 0.12, 1.04), WHITE, -0.86, 0.2, 0, car);
+for (const z of [-0.33, 0.33]) fluff(0.08, new THREE.MeshBasicMaterial({ color: 0xfff1a8 }), 0.86, 0.4, z, car); // lyktor
+const wheels = [[-0.52, -0.5], [-0.52, 0.5], [0.52, -0.5], [0.52, 0.5]].map(([x, z]) => {
+  const wheel = group(car, x, 0.2, z);
+  part(new THREE.CylinderGeometry(0.2, 0.2, 0.14, 16), mat(0x26262e), 0, 0, 0, wheel).rotation.x = Math.PI / 2;
+  part(new THREE.BoxGeometry(0.3, 0.06, 0.15), WHITE, 0, 0, 0, wheel); // en vit rand så att man ser att hjulet snurrar
+  return wheel;
+});
+// Sådant man kör runt på vägen
+const ORANGE = mat(0xff9f1c);
+const DRIVE_OBSTACLES = [
+  { half: 0.25, top: 9, tall: true, build: (g) => { // trafikkon
+    part(new THREE.BoxGeometry(0.5, 0.05, 0.5), ORANGE, 0, 0.03, 0, g);
+    part(new THREE.ConeGeometry(0.2, 0.7, 12), ORANGE, 0, 0.4, 0, g);
+    part(new THREE.CylinderGeometry(0.125, 0.155, 0.12, 12), WHITE, 0, 0.36, 0, g);
+  } },
+  { half: 0.2, top: 9, tall: true, build: (g) => { // vägbom
+    for (const z of [-0.45, 0.45]) part(new THREE.BoxGeometry(0.08, 0.8, 0.08), WHITE, 0, 0.4, z, g);
+    part(new THREE.BoxGeometry(0.08, 0.22, 1.1), RED, 0, 0.62, 0, g);
+    for (const z of [-0.3, 0.3]) part(new THREE.BoxGeometry(0.09, 0.23, 0.2), WHITE, 0, 0.62, z, g);
+  } },
+  { half: 0.75, top: 9, tall: true, build: (g) => { // en långsam blå bil
+    part(new THREE.BoxGeometry(1.5, 0.4, 0.95), mat(0x2a9dff), 0, 0.4, 0, g);
+    part(new THREE.BoxGeometry(0.8, 0.36, 0.85), mat(0xbfe9ff), -0.05, 0.78, 0, g);
+    for (const [x, z] of [[-0.48, -0.48], [-0.48, 0.48], [0.48, -0.48], [0.48, 0.48]]) part(new THREE.CylinderGeometry(0.2, 0.2, 0.14, 14), mat(0x26262e), x, 0.2, z, g).rotation.x = Math.PI / 2;
+    for (const z of [-0.3, 0.3]) fluff(0.07, RED, -0.76, 0.45, z, g); // baklyktor
+  } },
+  { half: 0.4, top: 9, tall: true, build: (g) => { // höbalar som har ramlat av en traktor
+    const HAY = mat(0xe8c95a);
+    part(new THREE.CylinderGeometry(0.4, 0.4, 0.7, 14), HAY, 0, 0.4, 0, g).rotation.x = Math.PI / 2;
+  } },
+];
+// Mataffären står i slutet av vägen. Skylten är en liten bild som spelet ritar själv.
+const store = group(runWorld);
+part(new THREE.BoxGeometry(5, 3, 9), mat(0xfff1c9), 0, 1.5, 0, store);
+part(new THREE.BoxGeometry(5.4, 0.3, 9.4), RED, 0, 3.1, 0, store);
+part(new THREE.BoxGeometry(0.1, 1.9, 1.8), mat(0x5b5b66), -2.52, 0.95, 0, store); // dörr
+for (const z of [-2.8, 2.8]) part(new THREE.BoxGeometry(0.1, 1.1, 2), mat(0xbfe9ff), -2.52, 1.4, z, store); // fönster
+const signCanvas = document.createElement('canvas');
+signCanvas.width = 512;
+signCanvas.height = 128;
+const signPaint = signCanvas.getContext('2d');
+function paintSign() {
+  signPaint.fillStyle = '#2ecc71';
+  signPaint.fillRect(0, 0, 512, 128);
+  signPaint.fillStyle = '#ffffff';
+  signPaint.font = '700 76px Fredoka, sans-serif';
+  signPaint.textAlign = 'center';
+  signPaint.textBaseline = 'middle';
+  signPaint.fillText(t('MATAFFÄR'), 256, 68);
+  signTexture.needsUpdate = true;
+}
+const signTexture = new THREE.CanvasTexture(signCanvas);
+signTexture.colorSpace = THREE.SRGBColorSpace;
+const storeSign = part(new THREE.PlaneGeometry(6, 1.5), new THREE.MeshBasicMaterial({ map: signTexture }), -2.75, 4.1, 0, store);
+storeSign.rotation.y = -Math.PI / 2;
+part(new THREE.BoxGeometry(0.2, 1.7, 6.3), mat(0x14532d), -2.62, 4.1, 0, store); // skyltens baksida och ram
+function startDrive() {
+  if (bones < CAR_BONES) {
+    SOUND.hit();
+    say(t('Jag behöver {n} hundben först!').replace('{n}', CAR_BONES));
+    return;
+  }
+  walking = agility = false;
+  driving = true;
+  beginRun();
+  paintSign();
+  tone(420, 420, 0.14, 'square', 0.07); // tut tut
+  tone(420, 420, 0.2, 'square', 0.07, 0.22);
+}
+function endDrive() {
+  bones += runBones;
+  try { localStorage.setItem('bones', bones); } catch {}
+  stats.totalBones += runBones;
+  stats.drives = (stats.drives || 0) + 1;
+  driving = false;
+  mode = 'dress';
+  goHome();
+  speedY = TAP_SPEED;
+  burst('🛒');
+  SOUND.win();
+  showMode();
+  checkMedals();
+  say('Nu har vi handlat mat!');
+}
+
 // ---------- Agility ----------
 // En bana med hopphinder, tunnlar och slalompinnar. Här tappar man inga hjärtan.
 const AGILITY_THEME = { sky: 0x9fdcff, ground: 0x7fd96a, track: 0xf0dca8, bush: 0x2fa35a, obstacle: 0x8a5a3a };
@@ -1828,6 +1929,7 @@ let startSpeed = 5;
 function speedAt(x) {
   if (walking) return 4.8; // promenadtakt
   if (agility) return 5.6;
+  if (driving) return Math.min(7 + x * 0.02, 11);
   return Math.min(startSpeed + x * 0.02, startSpeed * 1.6, 12.5);
 }
 
@@ -1842,19 +1944,19 @@ function addObstacle(kind, x, z) {
 }
 
 function startRun() {
-  walking = agility = false;
+  walking = agility = driving = false;
   beginRun();
 }
 function startAgility() {
   removeFriend(); // lämna hundparken
   friendBubbleTime = 0;
-  walking = false;
+  walking = driving = false;
   agility = true;
   beginRun();
   SOUND.happy();
 }
 function startWalk() {
-  agility = false;
+  agility = driving = false;
   walking = true;
   beginRun();
   SOUND.happy();
@@ -1865,7 +1967,10 @@ function beginRun() {
   stopTrying();
   showWardrobe();
   mode = 'run';
-  const theme = agility ? AGILITY_THEME : walking ? WALK_THEME : THEMES[(level - 1) % THEMES.length];
+  // Bilen syns bara när man kör, och då står mataffären i slutet av vägen
+  car.visible = store.visible = driving;
+  legs.visible = !driving;
+  const theme = driving ? ROAD_THEME : agility ? AGILITY_THEME : walking ? WALK_THEME : THEMES[(level - 1) % THEMES.length];
   scene.background.setHex(theme.sky);
   runGroundMat.color.setHex(theme.ground);
   trackMat.color.setHex(theme.track);
@@ -1881,10 +1986,10 @@ function beginRun() {
   // Varje bana är längre, snabbare och har tätare mellan hindren än den förra
   startSpeed = Math.min(4.6 + level * 0.5, 10.5);
   runSpeed = startSpeed;
-  const count = walking ? 0 : agility ? 20 : Math.min(8 + level * 4, 60); // antal hinder (inga alls på promenaden)
-  const shortest = agility ? 1.3 : Math.max(0.9, 1.35 - level * 0.05); // kortaste tiden mellan två hinder, i sekunder
-  const extra = agility ? 0.8 : Math.max(0.3, 0.9 - level * 0.06); // hur mycket längre det kan vara ibland
-  const kinds = agility ? AGILITY_OBSTACLES : OBSTACLES.filter((kind) => level >= kind.fromLevel);
+  const count = walking ? 0 : driving ? 26 : agility ? 20 : Math.min(8 + level * 4, 60); // antal hinder (inga alls på promenaden)
+  const shortest = driving ? 1.1 : agility ? 1.3 : Math.max(0.9, 1.35 - level * 0.05); // kortaste tiden mellan två hinder, i sekunder
+  const extra = driving || agility ? 0.8 : Math.max(0.3, 0.9 - level * 0.06); // hur mycket längre det kan vara ibland
+  const kinds = driving ? DRIVE_OBSTACLES : agility ? AGILITY_OBSTACLES : OBSTACLES.filter((kind) => level >= kind.fromLevel);
   boneGroup.clear();
   pickups = [];
   runBones = 0;
@@ -1917,6 +2022,7 @@ function beginRun() {
   }
   goalX = x + 9;
   goal.position.x = goalX;
+  store.position.x = goalX + 9;
 
   dog.position.set(0, 0, 0);
   dog.rotation.set(0, 0, 0); // nosen pekar framåt längs banan
@@ -1928,7 +2034,7 @@ function beginRun() {
 }
 
 function jump() {
-  if (mode === 'run' && dog.position.y < 0.02) {
+  if (mode === 'run' && !driving && dog.position.y < 0.02) { // bilen hoppar inte
     speedY = RUN_JUMP;
     SOUND.jump();
   }
@@ -1970,7 +2076,7 @@ function updateRun(dt, time) {
     if (!ob.hit && close && touching) {
       ob.hit = true;
       if (safeTime <= 0) {
-        if (!agility) hearts -= 1; // på agilitybanan tappar man inga hjärtan
+        if (!agility && !driving) hearts -= 1; // på agilitybanan och i bilen tappar man inga hjärtan
         safeTime = 1;
         SOUND.hit();
         showHud();
@@ -1996,10 +2102,12 @@ function updateRun(dt, time) {
   });
   dog.visible = safeTime <= 0 || Math.floor(safeTime * 12) % 2 === 0; // blinkar efter en krock
   progressBar.style.width = Math.min(100, (dog.position.x / goalX) * 100) + '%';
-  if (dog.position.x >= goalX) walking ? endWalk() : agility ? endAgility() : endRun(true);
+  if (dog.position.x >= goalX) walking ? endWalk() : driving ? endDrive() : agility ? endAgility() : endRun(true);
 }
 
 function goHome() {
+  car.visible = false;
+  legs.visible = true;
   scene.background.setHex(HOME_SKY);
   ground.visible = true;
   stars.visible = false;
@@ -2208,8 +2316,8 @@ function dogName() {
 }
 function showHud() {
   el('hearts').textContent = '❤️'.repeat(hearts) + '🤍'.repeat(3 - hearts);
-  el('levelName').textContent = agility ? '🏅 Agility' : walking ? '🦮 ' + t('Promenad') : t('Bana {n}').replace('{n}', level);
-  if (walking || agility) el('hearts').textContent = '';
+  el('levelName').textContent = driving ? '🚗 ' + t('Kör bil') : agility ? '🏅 Agility' : walking ? '🦮 ' + t('Promenad') : t('Bana {n}').replace('{n}', level);
+  if (walking || agility || driving) el('hearts').textContent = '';
   el('runBones').textContent = '🦴 ' + runBones;
 }
 function showMode() {
@@ -2224,7 +2332,9 @@ function showMode() {
   el('dpad').hidden = mode !== 'park';
   showPark();
   showHud();
-  el('hint').textContent = t('Tryck för att hoppa, svep för att byta fil');
+  el('hint').textContent = t(driving ? 'Svep eller tryck på pilarna för att byta fil' : 'Tryck för att hoppa, svep för att byta fil');
+  el('carButton').textContent = bones >= CAR_BONES ? '🚗 ' + t('Kör bil') : `🔒 🚗 ${CAR_BONES} 🦴`;
+  el('carButton').classList.toggle('closed', bones < CAR_BONES);
   el('swimHint').textContent = t('Håll in pilarna för att svänga');
   el('swimTitle').textContent = '🏊 ' + t('Simma');
   el('swimHome').textContent = '🏠 ' + t('Gå hem');
@@ -2916,6 +3026,7 @@ function updatePark(dt, time) {
 el('runButton').addEventListener('click', startRun);
 el('parkButton').addEventListener('click', startPark);
 el('swimButton').addEventListener('click', startSwim);
+el('carButton').addEventListener('click', startDrive);
 el('swimHome').addEventListener('click', endSwim);
 el('diveButton').addEventListener('click', () => toggleDive());
 el('agilityButton').addEventListener('click', startAgility);
@@ -2951,7 +3062,7 @@ if (test) {
   showWardrobe();
 }
 
-if (['#run', '#walk'].includes(location.hash) || location.hash.startsWith('#agility') || location.hash.startsWith('#care')) {
+if (['#run', '#walk'].includes(location.hash) || location.hash.startsWith('#drive') || location.hash.startsWith('#agility') || location.hash.startsWith('#care')) {
   startScreen.hidden = true;
   startRun();
   if (location.hash === '#run') { // visa en av varje sorts hinder på rad
@@ -2961,6 +3072,11 @@ if (['#run', '#walk'].includes(location.hash) || location.hash.startsWith('#agil
     OBSTACLES.forEach((kind, i) => addObstacle({ ...kind, roll: 0 }, 3 + i * 2.2, ((i % 3) - 1) * LANE));
   }
   if (location.hash === '#walk') startWalk();
+  if (location.hash.startsWith('#drive')) { // #drive = på vägen, #drive2 = framme vid affären
+    bones = CAR_BONES; startDrive(); obstacleGroup.clear(); obstacles = [];
+    DRIVE_OBSTACLES.forEach((kind, i) => addObstacle(kind, 6 + i * 4, ((i % 3) - 1) * LANE));
+    if (location.hash === '#drive2') dog.position.x = goalX - 14;
+  }
   if (location.hash.startsWith('#agility')) { breedIndex = myBreed = Number(location.hash[8] || 0); showBreed(); startAgility(); obstacleGroup.clear(); obstacles = []; AGILITY_OBSTACLES.forEach((kind, i) => addObstacle(kind, 5 + i * 3.2, ((i % 3) - 1) * LANE)); dog.position.x = 6.6; lane = 0; }
   if (location.hash.startsWith('#care')) {
     endRun(true);
@@ -3124,7 +3240,8 @@ renderer.setAnimationLoop(() => {
   const swims = mode === 'swim';
   if (swims) stridePhase += 7 * dt; // benen paddlar i vattnet
   if (strolling) stridePhase += 10 * dt; // benen går i parken
-  if (running) stridePhase += runSpeed * 2.4 * dt; // stegen går fortare när farten ökar
+  if (running) stridePhase += runSpeed * 2.4 * dt;
+  if (running && driving) for (const wheel of wheels) wheel.rotation.z -= runSpeed * 5 * dt; // hjulen snurrar // stegen går fortare när farten ökar
   const stride = running ? Math.sin(stridePhase) : 0;
   upper.position.y = upperBase + (inAir ? 0 : Math.abs(stride) * 0.06);
   dog.rotation.z = running ? (inAir ? 0.18 : stride * 0.07) : 0;

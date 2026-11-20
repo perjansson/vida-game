@@ -163,6 +163,8 @@
         touch-action: manipulation; user-select: none; -webkit-tap-highlight-color: transparent;
       }
       .go { color: #fff; background: #2ecc71; border: 3px solid #14532d; box-shadow: 0 4px 0 #14532d; text-shadow: 0 2px 0 #14532d; }
+      #carButton { background: #e63946; border-color: #7a1620; box-shadow: 0 4px 0 #7a1620; text-shadow: 0 2px 0 #7a1620; }
+      #carButton.closed { background: #9aa5a0; border-color: #555; box-shadow: 0 4px 0 #555; text-shadow: none; }
       #swimButton { background: #12b5c9; border-color: #0b5560; box-shadow: 0 4px 0 #0b5560; text-shadow: 0 2px 0 #0b5560; }
       #parkButton { background: #2a9dff; border-color: #123f73; box-shadow: 0 4px 0 #123f73; text-shadow: 0 2px 0 #123f73; }
       .go:active { transform: translateY(3px); box-shadow: 0 1px 0 #14532d; }
@@ -291,6 +293,7 @@
         <button id="runButton" class="go"></button>
         <button id="parkButton" class="go"></button>
         <button id="swimButton" class="go"></button>
+        <button id="carButton" class="go"></button>
         <span id="boneCount" class="count"></span>
         <button id="medalButton" class="count"></button>
       </div>
