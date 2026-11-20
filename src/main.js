@@ -32,7 +32,8 @@ const TEXTS = {
     'Spring bana {n}!': 'Juokse rata {n}!', 'Bana {n}': 'Rata {n}', 'Tryck för att hoppa!': 'Hyppää napauttamalla!',
     'Oj då!': 'Hups!', 'Hunden snubblade. Försök igen!': 'Koira kompastui. Yritä uudelleen!',
     'Försök igen': 'Yritä uudelleen', 'Garderoben': 'Vaatekaappi',
-    'Bra sprunget!': 'Hyvin juostu!', 'Samla ben på banorna': 'Kerää luita radoilta', 'Nu behöver hunden lite omsorg': 'Nyt koira tarvitsee hoivaa',
+    'Bra sprunget!': 'Hyvin juostu!', 'Samla ben och köp kläder och leksaker': 'Kerää luita ja osta vaatteita ja leluja',
+    'Köp': 'Osta', 'spring fler banor!': 'juokse lisää ratoja!', 'Boll': 'Pallo', 'Leka': 'Leiki', 'Nu behöver hunden lite omsorg': 'Nyt koira tarvitsee hoivaa',
     'Hunden är glad igen!': 'Koira on taas iloinen!',
     'Mat': 'Ruoka', 'Vatten': 'Vesi', 'Klappa': 'Silitä',
     'Välj färg på kläderna': 'Valitse vaatteiden väri',
@@ -65,7 +66,8 @@ const TEXTS = {
     'Spring bana {n}!': 'Run level {n}!', 'Bana {n}': 'Level {n}', 'Tryck för att hoppa!': 'Tap to jump!',
     'Oj då!': 'Oops!', 'Hunden snubblade. Försök igen!': 'The dog tripped. Try again!',
     'Försök igen': 'Try again', 'Garderoben': 'Wardrobe',
-    'Bra sprunget!': 'Well run!', 'Samla ben på banorna': 'Collect bones on the levels', 'Nu behöver hunden lite omsorg': 'Now the dog needs some care',
+    'Bra sprunget!': 'Well run!', 'Samla ben och köp kläder och leksaker': 'Collect bones and buy clothes and toys',
+    'Köp': 'Buy', 'spring fler banor!': 'run more levels!', 'Boll': 'Ball', 'Nalle': 'Teddy', 'Leka': 'Play', 'Nu behöver hunden lite omsorg': 'Now the dog needs some care',
     'Hunden är glad igen!': 'The dog is happy again!',
     'Mat': 'Food', 'Vatten': 'Water', 'Klappa': 'Pet',
     'Välj färg på kläderna': 'Pick colours for the clothes',
@@ -123,6 +125,7 @@ const SOUND = {
   Mat: () => tone(190, 90, 0.06, 'square', 0.08), // knaprar
   Vatten: () => tone(480, 820, 0.08, 'sine', 0.12), // lapar
   Klappa: () => tone(330, 440, 0.2, 'sine', 0.08), // myser
+  Leka: () => tone(500, 900, 0.1, 'sine', 0.1), // studs
   happy: () => melody([659, 880, 1319], 0.1),
 };
 
@@ -328,6 +331,28 @@ function sweater(parent, m, stripeColor) {
 function dome(parent, m, radius, y) {
   return part(new THREE.SphereGeometry(radius, 20, 10, 0, Math.PI * 2, 0, Math.PI / 2), m, 0, y, 0, parent);
 }
+// Leksaker ligger på marken bredvid hunden (inte på hunden)
+const toyGroup = group(scene);
+
+// Priser i hundben. Det som inte står här är gratis.
+const PRICE = {
+  Randig: 15, Tutu: 30,
+  Rosett: 10, Keps: 15, 'Mössa': 15, Trollhatt: 25, Krona: 40,
+  Runda: 10, 'Färgade': 15,
+  Halsduk: 10, Fluga: 15,
+  Strumpor: 10, 'Stövlar': 20,
+  'Ryggsäck': 20, Mantel: 30, Vingar: 40,
+  Boll: 10, Frisbee: 15, Nalle: 30,
+};
+let bones = 0; // alla ben man har tjänat
+try { bones = Math.max(0, Number(localStorage.getItem('bones')) || 0); } catch {}
+const owned = new Set(); // det man har köpt
+try { for (const name of JSON.parse(localStorage.getItem('owned')) || []) owned.add(name); } catch {}
+function have(name) {
+  return !PRICE[name] || owned.has(name);
+}
+let tryOn = null; // ett plagg man provar men inte har köpt än
+
 const wardrobe = [
   {
     id: 'sweater', icon: '👕', parent: upper,
@@ -443,7 +468,35 @@ const wardrobe = [
       }],
     ],
   },
+  {
+    id: 'toy', icon: '🧸', parent: toyGroup,
+    options: [
+      ['Boll', 0xc6e034, (g, m) => {
+        fluff(0.17, m, 1.15, 0.17, -0.95, g);
+        part(new THREE.TorusGeometry(0.165, 0.02, 8, 24), mat(0xffffff), 1.15, 0.17, -0.95, g).rotation.x = 0.6;
+      }],
+      ['Frisbee', 0xff9f1c, (g, m) => {
+        part(new THREE.CylinderGeometry(0.24, 0.26, 0.05, 24), m, 1.15, 0.03, -0.95, g);
+        part(new THREE.CylinderGeometry(0.12, 0.12, 0.06, 24), mat(0xffffff), 1.15, 0.03, -0.95, g);
+      }],
+      ['Nalle', 0xb5793f, (g, m) => {
+        const teddy = group(g, 1.15, 0, -0.95);
+        teddy.rotation.y = -1.0; // nallen tittar mot kameran
+        fluff(0.17, m, 0, 0.17, 0, teddy); // mage
+        fluff(0.13, m, 0, 0.42, 0, teddy); // huvud
+        fluff(0.06, mat(0xf2d6a8), 0.11, 0.39, 0, teddy); // nos
+        fluff(0.025, BLACK, 0.16, 0.4, 0, teddy);
+        for (const side of [-1, 1]) {
+          fluff(0.05, m, 0, 0.54, side * 0.1, teddy); // öron
+          fluff(0.02, BLACK, 0.11, 0.46, side * 0.05, teddy); // ögon
+          fluff(0.07, m, 0.06, 0.24, side * 0.17, teddy); // armar
+          fluff(0.08, m, 0.13, 0.07, side * 0.11, teddy); // ben
+        }
+      }],
+    ],
+  },
 ];
+const toyKind = wardrobe[wardrobe.length - 1];
 
 // Bygg alla plagg en gång och göm dem. wear() visar det plagg man har valt.
 for (const kind of wardrobe) {
@@ -464,16 +517,20 @@ function wear(kind, choice, color) {
   kind.items.forEach((g, i) => (g.visible = i === choice));
   kind.main.color.setHex(kind.color);
 }
+function stopTrying() {
+  if (tryOn) wear(tryOn.kind, -1); // ta av det man bara provade
+  tryOn = null;
+}
 function saveOutfit() {
   const outfit = {};
-  for (const kind of wardrobe) outfit[kind.id] = [kind.choice, kind.color];
+  for (const kind of wardrobe) outfit[kind.id] = [tryOn && tryOn.kind === kind ? -1 : kind.choice, kind.color]; // provade plagg sparas inte
   try { localStorage.setItem('outfit', JSON.stringify(outfit)); } catch {}
 }
 try {
   const outfit = JSON.parse(localStorage.getItem('outfit')) || {};
   for (const kind of wardrobe) {
     const [choice, color] = outfit[kind.id] || [];
-    if (kind.items[choice] && Number.isFinite(color)) wear(kind, choice, color);
+    if (kind.items[choice] && have(kind.options[choice][0]) && Number.isFinite(color)) wear(kind, choice, color);
   }
 } catch {}
 
@@ -570,6 +627,7 @@ function showWardrobe() {
   chipsBar.textContent = '';
   colorsBar.textContent = '';
   const kind = tabs[activeTab];
+  if (tryOn && tryOn.kind !== kind) stopTrying();
   if (activeTab === 0) {
     BREEDS.forEach((b, i) => {
       button(chipsBar, 'chip', t(b.name), i === breedIndex, () => {
@@ -579,9 +637,33 @@ function showWardrobe() {
       });
     });
   } else {
-    button(chipsBar, 'chip', '✖ ' + t('ingen'), kind.choice < 0, () => { wear(kind, -1); saveOutfit(); });
+    button(chipsBar, 'chip', '✖ ' + t('ingen'), kind.choice < 0, () => { stopTrying(); wear(kind, -1); saveOutfit(); });
     kind.options.forEach(([name], i) => {
-      button(chipsBar, 'chip', t(name), i === kind.choice, () => { wear(kind, i); saveOutfit(); });
+      const price = PRICE[name];
+      const trying = tryOn && tryOn.kind === kind && tryOn.i === i;
+      if (have(name)) {
+        button(chipsBar, 'chip', t(name), i === kind.choice, () => { stopTrying(); wear(kind, i); saveOutfit(); });
+      } else if (!trying) {
+        // Första trycket: prova plagget på hunden
+        button(chipsBar, 'chip locked', `🔒 ${t(name)} 🦴${price}`, false, () => { stopTrying(); wear(kind, i); tryOn = { kind, i }; });
+      } else if (bones >= price) {
+        // Andra trycket: köp det
+        button(chipsBar, 'chip buy', `${t('Köp')} ${t(name)}? 🦴${price}`, false, () => {
+          bones -= price;
+          owned.add(name);
+          tryOn = null;
+          try {
+            localStorage.setItem('bones', bones);
+            localStorage.setItem('owned', JSON.stringify([...owned]));
+          } catch {}
+          saveOutfit();
+          document.getElementById('boneCount').textContent = '🦴 ' + bones;
+          SOUND.happy();
+          speedY = TAP_SPEED;
+        });
+      } else {
+        button(chipsBar, 'chip poor', `🦴${price} – ${t('spring fler banor!')}`, false, () => SOUND.hit());
+      }
     });
     if (kind.choice >= 0) {
       for (const color of COLORS) {
@@ -608,9 +690,11 @@ const dice = document.createElement('button');
 dice.className = 'tab';
 dice.textContent = '🎲';
 dice.addEventListener('click', () => {
+  stopTrying();
   for (const kind of wardrobe) {
-    const choice = Math.floor(Math.random() * (kind.items.length + 1)) - 1;
-    wear(kind, choice, COLORS[Math.floor(Math.random() * COLORS.length)]);
+    // bara sådant man äger, eller ingenting (-1)
+    const mine = [-1, ...kind.options.map((option, i) => i).filter((i) => have(kind.options[i][0]))];
+    wear(kind, mine[Math.floor(Math.random() * mine.length)], COLORS[Math.floor(Math.random() * COLORS.length)]);
   }
   saveOutfit();
   speedY = TAP_SPEED;
@@ -793,8 +877,6 @@ const OBSTACLES = [
 ];
 
 // Hundben att samla på banan. Man får också ben för varje hjärta man har kvar i mål.
-let bones = 0; // alla ben man har tjänat
-try { bones = Math.max(0, Number(localStorage.getItem('bones')) || 0); } catch {}
 let runBones = 0; // ben man har plockat på den här banan
 let lastStars = 0;
 let lastReward = 0;
@@ -817,6 +899,8 @@ function addObstacle(kind, x) {
 }
 
 function startRun() {
+  stopTrying();
+  showWardrobe();
   mode = 'run';
   const theme = THEMES[(level - 1) % THEMES.length];
   scene.background.setHex(theme.sky);
@@ -996,7 +1080,8 @@ function updateCare(dt, time) {
   const reach = 0.9 * breed.size + 0.1; // så långt fram når nosen
   for (const { bowl } of Object.values(BOWLS)) bowl.position.x = reach;
   hand.visible = false;
-  if (!careAction || dog.position.y > 0.01) return; // vänta tills hunden har landat
+  if (!careAction) return;
+  if (careAction.time === 0 && dog.position.y > 0.01) return; // vänta tills hunden har landat
 
   if (Math.floor((careAction.time + dt) / 0.3) > Math.floor(careAction.time / 0.3)) SOUND[careAction.name]();
   careAction.time += dt;
@@ -1010,6 +1095,12 @@ function updateCare(dt, time) {
     head.rotation.y = -bowl.side * 0.4 * down;
     bowl.content.position.y = 0.15 - done * 0.1;
     bowl.content.scale.setScalar(1 - done * 0.2);
+  } else if (careAction.name === 'Leka') {
+    // Leksaken studsar och hunden hoppar glatt efter den
+    const toy = toyKind.items[toyKind.choice];
+    if (toy) toy.position.y = done < 1 ? Math.abs(Math.sin(time * 6)) * 0.7 : 0;
+    if (dog.position.y <= 0.01) speedY = 4;
+    head.rotation.z = 0.2;
   } else {
     // Handen stryker fram och tillbaka över huvudet
     const hatHeight = wardrobe.find((kind) => kind.id === 'hat').choice >= 0 ? 0.4 : 0.1;
@@ -1070,7 +1161,8 @@ function showMode() {
   el('retry').textContent = '🏃 ' + t('Försök igen');
   el('lostHome').textContent = '👗 ' + t('Garderoben');
 
-  const allDone = caredFor.size === CARE.length;
+  const allDone = CARE.every(([, name]) => caredFor.has(name));
+  const actions = toyKind.choice >= 0 ? [...CARE, ['🎾', 'Leka']] : CARE; // har hunden en leksak kan man leka också
   el('careTitle').textContent = t('Bra sprunget!') + ' ' + '⭐'.repeat(lastStars);
   el('careReward').textContent = `+${lastReward} 🦴`;
   el('boneCount').textContent = '🦴 ' + bones;
@@ -1078,7 +1170,7 @@ function showMode() {
   careProps.visible = mode === 'care';
   const careButtons = el('careButtons');
   careButtons.textContent = '';
-  for (const [emoji, name] of CARE) {
+  for (const [emoji, name] of actions) {
     const b = document.createElement('button');
     b.className = 'chip' + (caredFor.has(name) ? ' chosen' : '');
     b.textContent = `${emoji} ${t(name)}${caredFor.has(name) ? ' ✓' : ''}`;
@@ -1227,6 +1319,8 @@ renderer.setAnimationLoop(() => {
     camera.position.set(caring ? 0.4 : 0, cameraY + 1 - low, dressZ + (caring ? 1.3 : 0));
     camera.lookAt(caring ? 0.4 : 0, cameraY - low, 0);
   }
+  toyGroup.visible = mode === 'dress' || mode === 'care';
+  toyGroup.rotation.y = dog.rotation.y;
   stars.position.x = camera.position.x;
   sun.position.x = dog.position.x + 3;
   sun.target.position.x = dog.position.x;
