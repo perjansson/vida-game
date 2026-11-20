@@ -12,6 +12,20 @@ const HIT_MARGIN = 1.7; // gör det lättare att träffa hunden med fingret
 // Spelet är skrivet på svenska. Här finns översättningar till andra språk.
 // Lägg till ett nytt språk genom att kopiera listan "en" och byta texterna.
 const TEXTS = {
+  fi: {
+    'Klä ut hunden!': 'Pue koira!',
+    'Klä ut {namn}!': 'Pue {namn}!',
+    'Skriv hundens namn': 'Kirjoita koiran nimi',
+    ingen: 'ei mitään',
+    '👕 Tröja': '👕 Paita',
+    'Röd': 'Punainen', 'Randig': 'Raidallinen', 'Rosa': 'Pinkki', 'Grön': 'Vihreä', 'Blå': 'Sininen',
+    '🎩 Hatt': '🎩 Hattu',
+    'Partyhatt': 'Juhlahattu', 'Krona': 'Kruunu', 'Rosett': 'Rusetti', 'Trollhatt': 'Velhon hattu',
+    '🕶️ Glasögon': '🕶️ Lasit',
+    'Solbrillor': 'Aurinkolasit',
+    '🎀 Hals': '🎀 Kaula',
+    'Halsband': 'Kaulapanta', 'Halsduk': 'Kaulaliina', 'Fluga': 'Solmuke',
+  },
   en: {
     'Klä ut hunden!': 'Dress up the dog!',
     'Klä ut {namn}!': 'Dress up {namn}!',

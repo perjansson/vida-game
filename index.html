@@ -53,7 +53,7 @@
       #buttons small { display: block; font-size: 0.7em; color: #7b3fd1; margin-top: 2px; }
       #start {
         position: fixed; inset: 0; z-index: 10;
-        display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px;
+        display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px;
         padding: 16px; box-sizing: border-box;
         background: rgba(27, 16, 53, 0.88);
         font-family: 'Luckiest Guy', system-ui, sans-serif;
@@ -61,12 +61,12 @@
       #start[hidden] { display: none; }
       #start h1 {
         margin: 0 0 8px; text-align: center; font-weight: normal;
-        font-size: clamp(26px, 7vw, 48px); line-height: 1.2; letter-spacing: 1px;
+        font-size: clamp(22px, 6vw, 42px); line-height: 1.2; letter-spacing: 1px;
         color: #ffd93d; text-shadow: 0 4px 0 #ff5fa2;
       }
       #start button {
         font-family: inherit; font-size: clamp(22px, 6vw, 34px); letter-spacing: 1px;
-        width: min(80vw, 320px); min-height: 76px;
+        width: min(80vw, 320px); min-height: min(76px, 15vh);
         color: #2a1458; background: #ffd93d;
         border: 3px solid #2a1458; border-radius: 20px;
         box-shadow: 0 6px 0 #ff5fa2; cursor: pointer;
@@ -82,8 +82,9 @@
     </div>
     <div id="buttons"></div>
     <div id="start">
-      <h1>Välj språk<br />Choose language</h1>
+      <h1>Välj språk<br />Valitse kieli<br />Choose language</h1>
       <button data-lang="sv">🇸🇪 Svenska</button>
+      <button data-lang="fi">🇫🇮 Suomi</button>
       <button data-lang="en">🇬🇧 English</button>
     </div>
     <script type="module" src="/src/main.js"></script>
