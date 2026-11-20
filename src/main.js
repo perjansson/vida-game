@@ -15,7 +15,7 @@ const TEXTS = {
   fi: {
     'Klä ut hunden!': 'Pue koira!',
     'Klä ut {namn}!': 'Pue {namn}!',
-    'Skriv hundens namn': 'Kirjoita koiran nimi',
+    'Hundens namn': 'Koiran nimi',
     ingen: 'ei mitään',
     'Tryck på knapparna för att byta kläder': 'Vaihda vaatteita painamalla nappeja',
     'Dra för att snurra på hunden': 'Pyöritä koiraa vetämällä',
@@ -48,7 +48,7 @@ const TEXTS = {
   en: {
     'Klä ut hunden!': 'Dress up the dog!',
     'Klä ut {namn}!': 'Dress up {namn}!',
-    'Skriv hundens namn': "Type the dog's name",
+    'Hundens namn': "Dog's name",
     ingen: 'none',
     'Tryck på knapparna för att byta kläder': 'Tap the buttons to change clothes',
     'Dra för att snurra på hunden': 'Drag to spin the dog',
@@ -84,6 +84,45 @@ function t(text) {
   return (TEXTS[lang] && TEXTS[lang][text]) || text;
 }
 const refreshers = []; // funktioner som skriver om all text när språket byts
+
+// ---------- Ljud ----------
+// Alla ljud görs direkt i webbläsaren av enkla toner, inga ljudfiler behövs.
+let audio = null;
+let soundOn = true;
+try { soundOn = localStorage.getItem('sound') !== 'off'; } catch {}
+function tone(from, to, seconds, type = 'sine', volume = 0.15, delay = 0) {
+  if (!soundOn) return;
+  try {
+    audio = audio || new (window.AudioContext || window.webkitAudioContext)();
+    if (audio.state === 'suspended') audio.resume();
+    const start = audio.currentTime + delay;
+    const osc = audio.createOscillator();
+    const gain = audio.createGain();
+    osc.type = type;
+    osc.frequency.setValueAtTime(from, start);
+    osc.frequency.exponentialRampToValueAtTime(to, start + seconds);
+    gain.gain.setValueAtTime(volume, start);
+    gain.gain.exponentialRampToValueAtTime(0.001, start + seconds);
+    osc.connect(gain).connect(audio.destination);
+    osc.start(start);
+    osc.stop(start + seconds + 0.02);
+  } catch {}
+}
+function melody(notes, step, seconds = 0.22) {
+  notes.forEach((note, i) => tone(note, note, seconds, 'triangle', 0.18, i * step));
+}
+const SOUND = {
+  jump: () => tone(320, 720, 0.18, 'square', 0.06),
+  bark: () => { tone(540, 250, 0.09, 'sawtooth', 0.14); tone(500, 220, 0.12, 'sawtooth', 0.14, 0.14); }, // voff voff
+  pop: () => tone(600, 950, 0.07, 'sine', 0.14),
+  hit: () => tone(210, 70, 0.3, 'triangle', 0.3),
+  win: () => melody([523, 659, 784, 1047, 784, 1047], 0.12),
+  lose: () => melody([392, 330, 262], 0.2, 0.3),
+  Mat: () => tone(190, 90, 0.06, 'square', 0.08), // knaprar
+  Vatten: () => tone(480, 820, 0.08, 'sine', 0.12), // lapar
+  Klappa: () => tone(330, 440, 0.2, 'sine', 0.08), // myser
+  happy: () => melody([659, 880, 1319], 0.1),
+};
 
 // Scen, kamera och renderare
 const scene = new THREE.Scene();
@@ -509,6 +548,7 @@ const tabs = [{ icon: '🐶' }, ...wardrobe]; // första fliken är hundtyp
 let activeTab = 0;
 
 function hop() {
+  SOUND.pop();
   speedY = Math.max(speedY, 2.5); // ett litet glädjeskutt
 }
 function button(parent, className, label, chosen, onClick) {
@@ -572,6 +612,7 @@ dice.addEventListener('click', () => {
   }
   saveOutfit();
   speedY = TAP_SPEED;
+  SOUND.happy();
   showWardrobe();
 });
 tabsBar.appendChild(dice);
@@ -596,6 +637,7 @@ renderer.domElement.addEventListener('pointerdown', (event) => {
   dogCenter.set(dog.position.x, dog.position.y + DOG_CENTER, dog.position.z);
   if (raycaster.ray.distanceToPoint(dogCenter) < BALL_RADIUS * HIT_MARGIN) {
     speedY = TAP_SPEED;
+    SOUND.bark();
   }
   dragX = event.clientX;
 });
@@ -616,7 +658,7 @@ const nameInput = document.getElementById('name');
 function showName() {
   const name = nameInput.value.trim();
   info.textContent = name ? t('Klä ut {namn}!').replace('{namn}', name) : t('Klä ut hunden!');
-  nameInput.placeholder = t('Skriv hundens namn');
+  nameInput.placeholder = t('Hundens namn');
   try { localStorage.setItem('dogName', name); } catch {}
 }
 try { nameInput.value = localStorage.getItem('dogName') || ''; } catch {}
@@ -644,6 +686,7 @@ for (const button of langButtons) {
   button.addEventListener('click', () => setLanguage(button.dataset.lang));
 }
 document.getElementById('play').addEventListener('click', () => {
+  SOUND.bark();
   startScreen.hidden = true;
   speedY = TAP_SPEED; // hunden hoppar av glädje när spelet börjar
 });
@@ -737,7 +780,10 @@ function startRun() {
 }
 
 function jump() {
-  if (mode === 'run' && dog.position.y < 0.02) speedY = RUN_JUMP;
+  if (mode === 'run' && dog.position.y < 0.02) {
+    speedY = RUN_JUMP;
+    SOUND.jump();
+  }
 }
 window.addEventListener('keydown', (event) => {
   if (mode !== 'run' || !['Space', 'ArrowUp', 'KeyW'].includes(event.code)) return;
@@ -755,6 +801,7 @@ function updateRun(dt) {
       if (safeTime <= 0) {
         hearts -= 1;
         safeTime = 1;
+        SOUND.hit();
         showHud();
         if (hearts <= 0) return endRun(false);
       }
@@ -791,8 +838,10 @@ function endRun(won) {
     goHome();
     speedY = TAP_SPEED;
     burst('⭐');
+    SOUND.win();
   } else {
     mode = 'lost';
+    SOUND.lose();
   }
   showMode();
 }
@@ -847,6 +896,7 @@ function updateCare(dt, time) {
   hand.visible = false;
   if (!careAction || dog.position.y > 0.01) return; // vänta tills hunden har landat
 
+  if (Math.floor((careAction.time + dt) / 0.3) > Math.floor(careAction.time / 0.3)) SOUND[careAction.name]();
   careAction.time += dt;
   const done = Math.min(1, careAction.time / CARE_TIME);
   const bowl = BOWLS[careAction.name];
@@ -875,6 +925,7 @@ function updateCare(dt, time) {
   if (done >= 1) {
     caredFor.add(careAction.name);
     burst(careAction.emoji);
+    SOUND.happy();
     careAction = null;
     speedY = Math.max(speedY, 3.5);
     showMode();
@@ -928,6 +979,7 @@ function showMode() {
     b.textContent = `${emoji} ${t(name)}${caredFor.has(name) ? ' ✓' : ''}`;
     b.disabled = !!careAction || caredFor.has(name); // en sak i taget
     b.addEventListener('click', () => {
+      SOUND.pop();
       careAction = { name, emoji, time: 0 };
       showMode();
     });
@@ -973,6 +1025,16 @@ if (location.hash === '#run' || location.hash.startsWith('#care')) {
     showMode();
   }
 }
+
+// Högtalar-knappen stänger av och sätter på ljudet
+const soundButton = document.getElementById('sound');
+soundButton.textContent = soundOn ? '🔊' : '🔇';
+soundButton.addEventListener('click', () => {
+  soundOn = !soundOn;
+  soundButton.textContent = soundOn ? '🔊' : '🔇';
+  try { localStorage.setItem('sound', soundOn ? 'on' : 'off'); } catch {}
+  SOUND.pop();
+});
 
 // Jordglob-knappen öppnar språkvalet igen, mitt i spelet. Kläderna och namnet finns kvar.
 document.getElementById('language').addEventListener('click', () => {
