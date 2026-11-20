@@ -36,6 +36,7 @@ const TEXTS = {
     'Golden': 'Kultainennoutaja',
     'Börja om från bana 1': 'Aloita alusta radalta 1', 'Säker? Tryck igen för att börja om': 'Varmasti? Paina uudelleen',
     'Matta': 'Matto', 'Blommor': 'Kukat', 'Ballonger': 'Ilmapallot', 'Korg': 'Kori', 'Träd': 'Puu', 'Hundkoja': 'Koirankoppi',
+    'Lär': 'Opeta', 'Sitt': 'Istu', 'Snurra': 'Pyöri', 'Tass': 'Tassu', 'Dansa': 'Tanssi', 'Rulla': 'Kieri', 'Volt': 'Voltti',
     'Promenad': 'Kävely', 'Gå på promenad som belöning': 'Palkinnoksi pääset kävelylle',
     'Köp': 'Osta', 'spring fler banor!': 'juokse lisää ratoja!', 'Boll': 'Pallo', 'Leka': 'Leiki', 'Nu behöver hunden lite omsorg': 'Nyt koira tarvitsee hoivaa',
     'Hunden är glad igen!': 'Koira on taas iloinen!',
@@ -74,6 +75,7 @@ const TEXTS = {
     'Golden': 'Golden retriever',
     'Börja om från bana 1': 'Start over from level 1', 'Säker? Tryck igen för att börja om': 'Sure? Tap again to start over',
     'Matta': 'Rug', 'Blommor': 'Flowers', 'Ballonger': 'Balloons', 'Korg': 'Basket', 'Träd': 'Tree', 'Hundkoja': 'Dog house',
+    'Lär': 'Teach', 'Sitt': 'Sit', 'Snurra': 'Spin', 'Tass': 'Paw', 'Dansa': 'Dance', 'Rulla': 'Roll', 'Volt': 'Flip',
     'Promenad': 'Walk', 'Gå på promenad som belöning': 'Go for a walk as a reward',
     'Köp': 'Buy', 'spring fler banor!': 'run more levels!', 'Boll': 'Ball', 'Nalle': 'Teddy', 'Leka': 'Play', 'Nu behöver hunden lite omsorg': 'Now the dog needs some care',
     'Hunden är glad igen!': 'The dog is happy again!',
@@ -354,6 +356,7 @@ const PRICE = {
   'Ryggsäck': 20, Mantel: 30, Vingar: 40,
   Boll: 10, Frisbee: 15, Nalle: 30,
   Matta: 15, Blommor: 10, Ballonger: 20, Korg: 25, 'Träd': 30, Hundkoja: 60, // saker till hemmet
+  Sitt: 5, Snurra: 10, Tass: 15, Dansa: 20, Rulla: 25, Volt: 40, // trick som hunden kan lära sig
   Mops: 30, Pudel: 40, Golden: 50, Chihuahua: 50, Dalmatiner: 60, Husky: 80, // hundar
 };
 let bones = 0; // alla ben man har tjänat
@@ -533,6 +536,7 @@ function stopTrying() {
   if (tryOn) wear(tryOn.kind, -1); // ta av det man bara provade
   tryOn = null;
   tryHome = null;
+  tryTrick = null;
   showHome();
   if (breedIndex !== myBreed) { // byt tillbaka från en hund man bara tittade på
     breedIndex = myBreed;
@@ -697,10 +701,52 @@ for (const [name, build] of HOME) {
 const placed = new Set(); // sakerna som står framme
 try { for (const name of JSON.parse(localStorage.getItem('home')) || []) if (have(name)) placed.add(name); } catch {}
 let tryHome = null; // en sak man tittar på men inte har köpt än
+let tryTrick = null; // ett trick man har tryckt på men inte betalat för än
 function showHome() {
   for (const [name] of HOME) homeItems[name].visible = placed.has(name) || tryHome === name;
 }
 showHome();
+
+// ---------- Trick ----------
+// Hunden kan lära sig trick för hundben. Siffran är hur många sekunder tricket tar.
+const TRICKS = { Sitt: 2, Snurra: 1.2, Tass: 2.2, Dansa: 2.6, Rulla: 1.05, Volt: 1.05 };
+let trick = null; // tricket hunden gör just nu
+function startTrick(name) {
+  if (trick) return;
+  trick = { name, time: 0, length: TRICKS[name], baseY: dog.rotation.y };
+  SOUND.bark();
+  if (name === 'Rulla' || name === 'Volt') speedY = 6.3; // de här tricken görs i ett högt hopp
+}
+function updateTrick(dt) {
+  if (!trick) return;
+  trick.time += dt;
+  const p = Math.min(1, trick.time / trick.length); // går från 0 till 1 under tricket
+  const hold = Math.min(1, Math.sin(p * Math.PI) * 4); // mjuk start och mjukt slut
+  if (trick.name === 'Sitt') {
+    upper.rotation.z = 0.45 * hold; // rumpan ner, nosen upp
+    for (const i of [0, 1]) for (const h of hips[i]) h.rotation.z = 1.3 * hold; // bakbenen viks in
+  } else if (trick.name === 'Snurra') {
+    dog.rotation.y = trick.baseY + p * Math.PI * 4; // två varv
+  } else if (trick.name === 'Tass') {
+    for (const h of hips[3]) h.rotation.z = hold * (1.3 + Math.sin(trick.time * 14) * 0.3); // tassen vinkar
+    head.rotation.x = 0.15 * hold;
+  } else if (trick.name === 'Dansa') {
+    dog.rotation.y = trick.baseY + Math.sin(trick.time * 8) * 0.6;
+    if (dog.position.y <= 0.01) speedY = 3.2;
+  } else if (trick.name === 'Rulla') {
+    dog.rotation.x = p * Math.PI * 2; // snurrar runt som en korv i luften
+  } else if (trick.name === 'Volt') {
+    dog.rotation.z = p * Math.PI * 2; // bakåtvolt
+  }
+  if (p >= 1 || mode !== 'dress') {
+    dog.rotation.set(0, mode === 'run' ? 0 : trick.baseY, 0);
+    trick = null;
+    if (mode === 'dress') {
+      SOUND.happy();
+      burst('⭐');
+    }
+  }
+}
 
 // ---------- Garderoben ----------
 // Flikarna längst ner väljer vad man klär på. Ovanför visas alla plagg och färger.
@@ -708,7 +754,7 @@ const COLORS = [0xe63946, 0xff8fc7, 0xff9f1c, 0xffd93d, 0x2ecc71, 0x2a9dff, 0x7b
 const chipsBar = document.getElementById('chips');
 const colorsBar = document.getElementById('colors');
 const tabsBar = document.getElementById('tabs');
-const tabs = [{ icon: '🐶' }, ...wardrobe, { icon: '🏠', home: true }]; // första fliken är hundtyp, sista är hemmet
+const tabs = [{ icon: '🐶' }, ...wardrobe, { icon: '🏠', home: true }, { icon: '🎪', tricks: true }]; // första fliken är hundtyp, sista är hemmet
 let activeTab = 0;
 
 function hop() {
@@ -732,7 +778,7 @@ function showWardrobe() {
   chipsBar.textContent = '';
   colorsBar.textContent = '';
   const kind = tabs[activeTab];
-  if ((tryOn && tryOn.kind !== kind) || (activeTab !== 0 && breedIndex !== myBreed) || (tryHome && !kind.home)) stopTrying();
+  if ((tryOn && tryOn.kind !== kind) || (activeTab !== 0 && breedIndex !== myBreed) || (tryHome && !kind.home) || (tryTrick && !kind.tricks)) stopTrying();
   if (activeTab === 0) {
     BREEDS.forEach((b, i) => {
       const price = PRICE[b.name];
@@ -753,6 +799,23 @@ function showWardrobe() {
         button(chipsBar, 'chip poor', `🦴${price} – ${t('spring fler banor!')}`, false, () => SOUND.hit());
       }
     });
+  } else if (kind.tricks) {
+    for (const name of Object.keys(TRICKS)) {
+      const price = PRICE[name];
+      if (have(name)) {
+        button(chipsBar, 'chip', t(name), false, () => startTrick(name)); // hunden gör tricket
+      } else if (tryTrick !== name) {
+        button(chipsBar, 'chip locked', `🔒 ${t(name)} 🦴${price}`, false, () => { stopTrying(); tryTrick = name; });
+      } else if (bones >= price) {
+        button(chipsBar, 'chip buy', `${t('Lär')} ${t(name)}? 🦴${price}`, false, () => {
+          tryTrick = null;
+          pay(name);
+          startTrick(name); // visa direkt vad hunden har lärt sig
+        });
+      } else {
+        button(chipsBar, 'chip poor', `🦴${price} – ${t('spring fler banor!')}`, false, () => SOUND.hit());
+      }
+    }
   } else if (kind.home) {
     for (const [name] of HOME) {
       const price = PRICE[name];
@@ -1557,6 +1620,13 @@ soundButton.addEventListener('click', () => {
   SOUND.pop();
 });
 
+if (location.hash.startsWith('#trick')) { // testläge: visa ett trick mitt i rörelsen
+  startScreen.hidden = true;
+  startTrick(Object.keys(TRICKS)[Number(location.hash[6]) || 0]);
+  trick.time = trick.length * 0.4;
+  if (trick.name === 'Rulla' || trick.name === 'Volt') { dog.position.y = 1.5; speedY = 1; }
+}
+
 // Jordglob-knappen öppnar språkvalet igen, mitt i spelet. Kläderna och namnet finns kvar.
 document.getElementById('language').addEventListener('click', () => {
   resetSure = false;
@@ -1605,6 +1675,7 @@ renderer.setAnimationLoop(() => {
     pair[1].rotation.x = -flap;
   }
 
+  // (tricken läggs på längre ner, efter att kroppen och benen har fått sina vanliga lägen)
   // Springsteg: kroppen guppar och gungar
   if (running) stridePhase += runSpeed * 2.4 * dt; // stegen går fortare när farten ökar
   const stride = running ? Math.sin(stridePhase) : 0;
@@ -1624,6 +1695,7 @@ renderer.setAnimationLoop(() => {
     if (running) swing = inAir ? (front ? 0.9 : -0.9) : Math.sin(phase + (front ? Math.PI : 0) + (i % 2) * 0.6) * 0.75;
     for (const h of sameLeg) h.rotation.z = swing;
   });
+  updateTrick(dt);
 
   if (mode === 'run' || mode === 'lost') {
     // Kameran springer med rakt bakom hunden, så att man ser kroppen och alla tre filerna
