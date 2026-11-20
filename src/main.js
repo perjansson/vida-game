@@ -808,7 +808,7 @@ const trackMat = new THREE.MeshStandardMaterial({ roughness: 1 });
 const bushMat = new THREE.MeshStandardMaterial({ roughness: 1 });
 const obstacleMat = new THREE.MeshStandardMaterial({ roughness: 0.8 });
 for (const [material, width, y] of [[runGroundMat, 120, -0.02], [trackMat, 3.4, 0]]) {
-  const plane = part(new THREE.PlaneGeometry(900, width), material, 400, y, 0, runWorld);
+  const plane = part(new THREE.PlaneGeometry(2600, width), material, 1250, y, 0, runWorld);
   plane.rotation.x = -Math.PI / 2;
   plane.castShadow = false;
   plane.receiveShadow = true;
@@ -915,12 +915,16 @@ function startRun() {
   // Lägg ut hindren. Högre banor är snabbare och har fler hinder.
   obstacleGroup.clear();
   obstacles = [];
-  runSpeed = Math.min(4.6 + level * 0.5, 9);
+  // Varje bana är längre, snabbare och har tätare mellan hindren än den förra
+  runSpeed = Math.min(4.6 + level * 0.5, 10.5);
+  const count = Math.min(8 + level * 4, 60); // antal hinder
+  const shortest = Math.max(0.9, 1.35 - level * 0.05); // kortaste tiden mellan två hinder, i sekunder
+  const extra = Math.max(0.3, 0.9 - level * 0.06); // hur mycket längre det kan vara ibland
   const kinds = OBSTACLES.filter((kind) => level >= kind.fromLevel);
   let x = 10;
-  for (let i = 0; i < 5 + level * 2; i++) {
+  for (let i = 0; i < count; i++) {
     const kind = kinds[Math.floor(Math.random() * kinds.length)];
-    x += runSpeed * (1.3 + Math.random() * 0.9) + (kind.roll ? 7 : 0); // rullande hinder får extra plats
+    x += runSpeed * (shortest + Math.random() * extra) + (kind.roll ? 7 : 0); // rullande hinder får extra plats
     addObstacle(kind, x);
   }
   // Lägg ut ben: på marken mellan hindren och i luften ovanför en del hinder
@@ -961,7 +965,7 @@ function updateRun(dt, time) {
   safeTime -= dt;
   const dogTop = dog.position.y + (1.3 + upperBase) * breed.size; // hundens huvud
   for (const ob of obstacles) {
-    if (ob.roll && !ob.hit && ob.x - dog.position.x < 22) ob.x -= ob.roll * dt;
+    if (ob.roll && !ob.hit && ob.x - dog.position.x < 22) ob.x -= (ob.roll + level * 0.1) * dt; // bollen rullar fortare på högre banor
     ob.group.position.x = ob.x;
     if (ob.animate && !ob.hit) ob.animate(time);
     const close = Math.abs(dog.position.x - ob.x) < 0.4 * breed.size + ob.half;
