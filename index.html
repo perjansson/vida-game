@@ -255,6 +255,7 @@
         border: 4px solid #2a1458; box-shadow: 0 6px 0 #ff5fa2; pointer-events: none;
         font-size: clamp(18px, 5vw, 26px); font-weight: 700;
       }
+      #parkHint { font-size: clamp(13px, 3.5vw, 16px) !important; opacity: 0.85; }
       #swim { position: fixed; top: max(12px, env(safe-area-inset-top)); left: 0; right: 0; z-index: 2; display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: center; pointer-events: none; }
       #swim button { pointer-events: auto; }
       #swimTitle { color: #fff; font-size: clamp(24px, 6.5vw, 34px); font-weight: 700; -webkit-text-stroke: 5px #2a1458; paint-order: stroke fill; }
@@ -324,6 +325,7 @@
     <div id="park" class="panel" hidden>
       <h2 id="parkTitle"></h2>
       <p id="parkText"></p>
+      <p id="parkHint"></p>
       <p><span id="parkCount"></span> &nbsp; <span id="parkBones"></span></p>
       <div id="parkButtons">
         <button id="greet" class="go"></button>
