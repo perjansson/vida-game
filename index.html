@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>Vidas spel</title>
     <style>
+      [hidden] { display: none !important; }
       html, body { margin: 0; height: 100%; overflow: hidden; background: #1b1035; }
       canvas { display: block; touch-action: none; }
       #info {
@@ -31,7 +32,7 @@
         color: #2a1458; background: #fff; border: 3px solid #2a1458; border-radius: 16px;
         box-shadow: 0 4px 0 #ff5fa2; outline: none;
       }
-      #row { display: flex; gap: 10px; align-items: center; justify-content: center; }
+      #row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: center; padding: 0 10px; }
       #language {
         pointer-events: auto; width: 52px; height: 48px; padding: 0; font-size: 26px;
         background: #ffd93d; border: 3px solid #2a1458; border-radius: 16px;
@@ -132,6 +133,64 @@
       }
       #play:active { transform: translateY(4px); box-shadow: 0 2px 0 #14532d; animation: none; }
       @keyframes pulse { 50% { transform: scale(1.04); } }
+      /* Gröna "kör"-knappar och vita vanliga knappar */
+      .go, .plain {
+        pointer-events: auto; font-family: 'Luckiest Guy', system-ui, sans-serif;
+        font-size: clamp(17px, 4.6vw, 24px); letter-spacing: 1px;
+        min-height: 48px; padding: 6px 18px; border-radius: 16px; cursor: pointer;
+        touch-action: manipulation; user-select: none; -webkit-tap-highlight-color: transparent;
+      }
+      .go { color: #fff; background: #2ecc71; border: 3px solid #14532d; box-shadow: 0 4px 0 #14532d; text-shadow: 0 2px 0 #14532d; }
+      .go:active { transform: translateY(3px); box-shadow: 0 1px 0 #14532d; }
+      .go:disabled { background: #9aa5a0; border-color: #555; box-shadow: 0 4px 0 #555; text-shadow: none; opacity: 0.7; }
+      .plain { color: #2a1458; background: #fff; border: 3px solid #2a1458; }
+      /* På banan: hjärtan, banans nummer och hur långt man har kommit */
+      #hud {
+        position: fixed; top: max(12px, env(safe-area-inset-top)); left: 0; right: 0; padding: 0 14px;
+        display: flex; flex-direction: column; align-items: center; gap: 8px;
+        font-family: 'Luckiest Guy', system-ui, sans-serif; pointer-events: none; user-select: none;
+      }
+      #hudRow { display: flex; gap: 18px; align-items: center; font-size: clamp(24px, 6vw, 36px); }
+      #levelName { color: #fff; -webkit-text-stroke: 2px #2a1458; paint-order: stroke fill; letter-spacing: 1px; }
+      #progress { width: min(86vw, 460px); height: 16px; background: rgba(255, 255, 255, 0.6); border: 3px solid #2a1458; border-radius: 12px; overflow: hidden; }
+      #progressBar { height: 100%; width: 0; background: #ff5fa2; }
+      #hint {
+        position: fixed; left: 0; right: 0; bottom: max(24px, env(safe-area-inset-bottom)); text-align: center;
+        font-size: clamp(20px, 5.5vw, 30px); color: #fff; -webkit-text-stroke: 2px #2a1458; paint-order: stroke fill; letter-spacing: 1px;
+      }
+      .popup {
+        position: fixed; inset: 0; z-index: 5; display: flex; align-items: center; justify-content: center;
+        padding: 16px; background: rgba(27, 16, 53, 0.55); font-family: 'Luckiest Guy', system-ui, sans-serif;
+      }
+      .popup .box, .panel {
+        display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center;
+        background: linear-gradient(#5b3bb0, #3b2a6b); border: 4px solid #ffd93d;
+        font-family: 'Luckiest Guy', system-ui, sans-serif;
+      }
+      .popup .box { width: min(100%, 360px); padding: 20px; border-radius: 26px; box-shadow: 0 8px 0 #ff5fa2; }
+      .popup h2, .panel h2 { margin: 0; font-weight: normal; font-size: clamp(26px, 7vw, 38px); color: #ffd93d; text-shadow: 0 3px 0 #ff5fa2; letter-spacing: 1px; }
+      .popup p, .panel p { margin: 0; color: #fff; font-size: clamp(16px, 4.4vw, 20px); letter-spacing: 0.5px; }
+      .popup .go, .popup .plain { width: 100%; }
+      .panel {
+        position: fixed; left: 0; right: 0; bottom: 0; gap: 8px;
+        padding: 10px 10px max(10px, env(safe-area-inset-bottom));
+        border-width: 4px 0 0; 
+      }
+      #careButtons, #careNext { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+      #careButtons button { font-family: inherit; cursor: pointer; touch-action: manipulation; }
+      .float {
+        position: fixed; top: 42%; z-index: 4; font-size: 40px; pointer-events: none; opacity: 0;
+        animation: floatUp 1.3s ease-out forwards;
+      }
+      @keyframes floatUp {
+        0% { opacity: 0; transform: translateY(20px) scale(0.5); }
+        20% { opacity: 1; }
+        100% { opacity: 0; transform: translateY(-170px) scale(1.3); }
+      }
+      @media (max-height: 520px) {
+        .panel { flex-direction: row; flex-wrap: wrap; justify-content: center; column-gap: 14px; }
+        .panel h2 { font-size: 24px; }
+      }
     </style>
   </head>
   <body>
@@ -140,12 +199,35 @@
       <div id="row">
         <input id="name" type="text" maxlength="12" placeholder="Skriv hundens namn" autocomplete="off" autocapitalize="words" spellcheck="false" />
         <button id="language" aria-label="Byt språk">🌍</button>
+        <button id="runButton" class="go"></button>
       </div>
     </div>
     <div id="wardrobe">
       <div id="chips"></div>
       <div id="colors"></div>
       <div id="tabs"></div>
+    </div>
+    <div id="hud" hidden>
+      <div id="hudRow"><span id="hearts"></span><span id="levelName"></span></div>
+      <div id="progress"><div id="progressBar"></div></div>
+      <div id="hint"></div>
+    </div>
+    <div id="lost" class="popup" hidden>
+      <div class="box">
+        <h2 id="lostTitle"></h2>
+        <p id="lostText"></p>
+        <button id="retry" class="go"></button>
+        <button id="lostHome" class="plain"></button>
+      </div>
+    </div>
+    <div id="care" class="panel" hidden>
+      <h2 id="careTitle"></h2>
+      <p id="careText"></p>
+      <div id="careButtons"></div>
+      <div id="careNext">
+        <button id="nextLevel" class="go"></button>
+        <button id="careHome" class="plain"></button>
+      </div>
     </div>
     <div id="start">
       <div id="card">
@@ -154,8 +236,8 @@
         <ul>
           <li><span>🐶</span><span data-t="Välj hund och kläder längst ner">Välj hund och kläder längst ner</span></li>
           <li><span>🎨</span><span data-t="Välj färg på kläderna">Välj färg på kläderna</span></li>
-          <li><span>👆</span><span data-t="Dra för att snurra på hunden">Dra för att snurra på hunden</span></li>
-          <li><span>⬆️</span><span data-t="Tryck på hunden så hoppar den">Tryck på hunden så hoppar den</span></li>
+          <li><span>🏃</span><span data-t="Spring banor och hoppa över hinder">Spring banor och hoppa över hinder</span></li>
+          <li><span>💗</span><span data-t="Ta hand om hunden efter varje bana">Ta hand om hunden efter varje bana</span></li>
           <li><span>✏️</span><span data-t="Ge hunden ett namn">Ge hunden ett namn</span></li>
         </ul>
         <div id="langs">

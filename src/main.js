@@ -25,6 +25,14 @@ const TEXTS = {
     '🐶 Hund': '🐶 Koira',
     'Pudel': 'Villakoira', 'Dalmatiner': 'Dalmatiankoira', 'Mops': 'Mopsi',
     'Välj hund och kläder längst ner': 'Valitse koira ja vaatteet alhaalta',
+    'Spring banor och hoppa över hinder': 'Juokse ratoja ja hyppää esteiden yli',
+    'Ta hand om hunden efter varje bana': 'Hoida koiraa jokaisen radan jälkeen',
+    'Spring bana {n}!': 'Juokse rata {n}!', 'Bana {n}': 'Rata {n}', 'Tryck för att hoppa!': 'Hyppää napauttamalla!',
+    'Oj då!': 'Hups!', 'Hunden snubblade. Försök igen!': 'Koira kompastui. Yritä uudelleen!',
+    'Försök igen': 'Yritä uudelleen', 'Garderoben': 'Vaatekaappi',
+    'Bra sprunget!': 'Hyvin juostu!', 'Nu behöver hunden lite omsorg': 'Nyt koira tarvitsee hoivaa',
+    'Hunden är glad igen!': 'Koira on taas iloinen!',
+    'Mat': 'Ruoka', 'Vatten': 'Vesi', 'Klappa': 'Silitä',
     'Välj färg på kläderna': 'Valitse vaatteiden väri',
     'Enfärgad': 'Yksivärinen', 'Keps': 'Lippis', 'Mössa': 'Pipo', 'Färgade': 'Värilliset', 'Runda': 'Pyöreät',
     'Stövlar': 'Saappaat', 'Strumpor': 'Sukat', 'Mantel': 'Viitta', 'Vingar': 'Siivet', 'Ryggsäck': 'Reppu',
@@ -50,6 +58,14 @@ const TEXTS = {
     '🐶 Hund': '🐶 Dog',
     'Pudel': 'Poodle', 'Dalmatiner': 'Dalmatian', 'Mops': 'Pug',
     'Välj hund och kläder längst ner': 'Choose a dog and clothes at the bottom',
+    'Spring banor och hoppa över hinder': 'Run levels and jump over obstacles',
+    'Ta hand om hunden efter varje bana': 'Take care of the dog after each level',
+    'Spring bana {n}!': 'Run level {n}!', 'Bana {n}': 'Level {n}', 'Tryck för att hoppa!': 'Tap to jump!',
+    'Oj då!': 'Oops!', 'Hunden snubblade. Försök igen!': 'The dog tripped. Try again!',
+    'Försök igen': 'Try again', 'Garderoben': 'Wardrobe',
+    'Bra sprunget!': 'Well run!', 'Nu behöver hunden lite omsorg': 'Now the dog needs some care',
+    'Hunden är glad igen!': 'The dog is happy again!',
+    'Mat': 'Food', 'Vatten': 'Water', 'Klappa': 'Pet',
     'Välj färg på kläderna': 'Pick colours for the clothes',
     'Enfärgad': 'Plain', 'Keps': 'Cap', 'Mössa': 'Beanie', 'Färgade': 'Tinted', 'Runda': 'Round',
     'Stövlar': 'Boots', 'Strumpor': 'Socks', 'Mantel': 'Cape', 'Vingar': 'Wings', 'Ryggsäck': 'Backpack',
@@ -83,11 +99,12 @@ renderer.shadowMap.enabled = true;
 document.body.appendChild(renderer.domElement);
 
 // Ljus
-scene.add(new THREE.AmbientLight(0xffffff, 0.6));
-const sun = new THREE.DirectionalLight(0xffffff, 1.2);
+scene.add(new THREE.AmbientLight(0xffffff, 2.2));
+const sun = new THREE.DirectionalLight(0xffffff, 2.0);
 sun.position.set(3, 8, 4);
 sun.castShadow = true;
 scene.add(sun);
+scene.add(sun.target); // så att solen kan följa med hunden på banan
 
 // Mark
 const ground = new THREE.Mesh(
@@ -101,10 +118,12 @@ scene.add(ground);
 // Stjärnor, så att man ser hur högt hunden kommer
 const starMaterial = new THREE.MeshBasicMaterial({ color: 0xfff3b0 });
 const starGeometry = new THREE.SphereGeometry(0.06, 6, 6);
+const stars = new THREE.Group();
+scene.add(stars);
 for (let i = 0; i < 80; i++) {
   const star = new THREE.Mesh(starGeometry, starMaterial);
   star.position.set((Math.random() - 0.5) * 16, 2 + Math.random() * 60, -3 - Math.random() * 6);
-  scene.add(star);
+  stars.add(star);
 }
 
 // Hunden byggs av enkla former. Varje hundtyp visar olika delar (se Hundtyper längre ner).
@@ -137,6 +156,7 @@ function group(parent, x = 0, y = 0, z = 0) {
 
 const dog = new THREE.Group(); // hundens fötter står på y = 0
 const upper = group(dog); // allt utom benen, flyttas upp när benen är långa
+let upperBase = 0; // hur högt kroppen sitter för den valda hundtypen
 
 // Kropp: en lurvig (många bollar) och en slät (en avlång form)
 const fluffyBody = group(upper);
@@ -448,7 +468,8 @@ function showBreed() {
 
   dog.scale.setScalar(breed.size);
   legs.scale.y = breed.legs;
-  upper.position.y = (breed.legs - 1) * 0.3; // längre ben lyfter kroppen
+  upperBase = (breed.legs - 1) * 0.3; // längre ben lyfter kroppen
+  upper.position.y = upperBase;
 
   fluffyBody.visible = fluffyLegs.visible = !!breed.fluffy;
   smoothBody.visible = smoothLegs.visible = !breed.fluffy;
@@ -558,6 +579,7 @@ let speedY = 0; // hundens fart uppåt (minus betyder nedåt)
 const raycaster = new THREE.Raycaster();
 const pointer = new THREE.Vector2();
 renderer.domElement.addEventListener('pointerdown', (event) => {
+  if (mode === 'run') return jump(); // på banan hoppar hunden var man än trycker
   pointer.x = (event.clientX / window.innerWidth) * 2 - 1;
   pointer.y = -(event.clientY / window.innerHeight) * 2 + 1;
   raycaster.setFromCamera(pointer, camera);
@@ -571,7 +593,7 @@ renderer.domElement.addEventListener('pointerdown', (event) => {
 // Dra med fingret eller musen för att snurra på hunden
 let dragX = null;
 window.addEventListener('pointermove', (event) => {
-  if (dragX === null) return;
+  if (dragX === null || mode === 'run') return;
   dog.rotation.y += (event.clientX - dragX) * 0.012;
   dragX = event.clientX;
 });
@@ -619,6 +641,223 @@ let savedLang = 'sv';
 try { savedLang = localStorage.getItem('lang') || 'sv'; } catch {}
 setLanguage(savedLang === 'sv' || TEXTS[savedLang] ? savedLang : 'sv');
 
+// ---------- Springa banor ----------
+// Hunden springer framåt av sig själv. Tryck för att hoppa över hindren.
+// Efter målet får man ta hand om hunden, och sedan väntar nästa bana.
+const RUN_GRAVITY = 18;
+const RUN_JUMP = 7; // hur högt hunden hoppar på banan
+const NIGHT = 0x1b1035;
+const THEMES = [
+  { sky: 0x8fd3ff, ground: 0x6cc24a, track: 0xd9b382, bush: 0x2e9e4f, obstacle: 0x8a5a3a }, // parken
+  { sky: 0xffd9a0, ground: 0xf2d28a, track: 0xfbe8b5, bush: 0xff8fc7, obstacle: 0xe63946 }, // stranden
+  { sky: 0xcfe8ff, ground: 0xffffff, track: 0xdcecff, bush: 0x9ed8ff, obstacle: 0x2a9dff }, // snön
+  { sky: NIGHT, ground: 0x3b2a6b, track: 0x5b3bb0, bush: 0xffd93d, obstacle: 0xff5fa2 }, // rymden
+];
+let mode = 'dress'; // 'dress' = garderoben, 'run' = springa, 'lost' = snubblat, 'care' = ta hand om hunden
+let level = 1;
+try { level = Math.max(1, Number(localStorage.getItem('level')) || 1); } catch {}
+let hearts = 3;
+let runSpeed = 5;
+let goalX = 100;
+let safeTime = 0; // en kort stund efter en krock kan man inte tappa fler hjärtan
+let obstacles = [];
+
+const runWorld = group(scene);
+runWorld.visible = false;
+const runGroundMat = new THREE.MeshStandardMaterial({ roughness: 1 });
+const trackMat = new THREE.MeshStandardMaterial({ roughness: 1 });
+const bushMat = new THREE.MeshStandardMaterial({ roughness: 1 });
+const obstacleMat = new THREE.MeshStandardMaterial({ roughness: 0.8 });
+for (const [material, width, y] of [[runGroundMat, 120, -0.02], [trackMat, 3.4, 0]]) {
+  const plane = part(new THREE.PlaneGeometry(900, width), material, 400, y, 0, runWorld);
+  plane.rotation.x = -Math.PI / 2;
+  plane.castShadow = false;
+  plane.receiveShadow = true;
+}
+const roadside = []; // buskar som flyttas fram när hunden har sprungit förbi dem
+for (let i = 0; i < 16; i++) {
+  const bush = fluff(0.3 + (i % 3) * 0.12, bushMat, 0, 0.25, i % 2 ? 2.7 : -2.7, runWorld);
+  bush.castShadow = false;
+  roadside.push(bush);
+}
+const obstacleGroup = group(runWorld);
+const goal = group(runWorld);
+for (const z of [-1.8, 1.8]) part(new THREE.CylinderGeometry(0.07, 0.07, 2.6, 8), mat(0xffffff), 0, 1.3, z, goal);
+part(new THREE.BoxGeometry(0.08, 0.45, 3.7), mat(0xffd93d), 0, 2.5, 0, goal);
+for (let i = 0; i < 6; i++) part(new THREE.BoxGeometry(0.1, 0.2, 0.3), mat(0x2a1458), 0, 2.5 + (i % 2 ? 0.1 : -0.1), -1.5 + i * 0.6, goal);
+
+function startRun() {
+  mode = 'run';
+  const theme = THEMES[(level - 1) % THEMES.length];
+  scene.background.setHex(theme.sky);
+  runGroundMat.color.setHex(theme.ground);
+  trackMat.color.setHex(theme.track);
+  bushMat.color.setHex(theme.bush);
+  obstacleMat.color.setHex(theme.obstacle);
+  ground.visible = false;
+  stars.visible = theme.sky === NIGHT;
+  runWorld.visible = true;
+
+  // Lägg ut hindren. Högre banor är snabbare och har fler hinder.
+  obstacleGroup.clear();
+  obstacles = [];
+  runSpeed = Math.min(4.6 + level * 0.5, 9);
+  let x = 10;
+  for (let i = 0; i < 5 + level * 2; i++) {
+    x += runSpeed * (1.3 + Math.random() * 0.9);
+    const tall = level > 1 && Math.random() < 0.4;
+    let mesh;
+    if (tall) {
+      mesh = part(new THREE.BoxGeometry(0.35, 0.6, 2.4), obstacleMat, x, 0.3, 0, obstacleGroup);
+    } else {
+      mesh = part(new THREE.CylinderGeometry(0.22, 0.22, 2.4, 12), obstacleMat, x, 0.22, 0, obstacleGroup);
+      mesh.rotation.x = Math.PI / 2;
+    }
+    obstacles.push({ x, height: tall ? 0.6 : 0.44, mesh, hit: false });
+  }
+  goalX = x + 9;
+  goal.position.x = goalX;
+
+  dog.position.set(0, 0, 0);
+  dog.rotation.set(0, 0, 0); // nosen pekar framåt längs banan
+  speedY = 0;
+  hearts = 3;
+  safeTime = 0;
+  showMode();
+}
+
+function jump() {
+  if (mode === 'run' && dog.position.y < 0.02) speedY = RUN_JUMP;
+}
+window.addEventListener('keydown', (event) => {
+  if (mode !== 'run' || !['Space', 'ArrowUp', 'KeyW'].includes(event.code)) return;
+  event.preventDefault();
+  jump();
+});
+
+function updateRun(dt) {
+  dog.position.x += runSpeed * dt;
+  safeTime -= dt;
+  const reach = 0.25 + 0.4 * breed.size; // hur nära hindret hunden måste vara för att slå i
+  for (const ob of obstacles) {
+    if (!ob.hit && Math.abs(dog.position.x - ob.x) < reach && dog.position.y < ob.height - 0.12) {
+      ob.hit = true;
+      if (safeTime <= 0) {
+        hearts -= 1;
+        safeTime = 1;
+        showHud();
+        if (hearts <= 0) return endRun(false);
+      }
+    }
+    if (ob.hit && ob.mesh.position.y > -1) ob.mesh.position.y -= dt * 2.5; // hindret sjunker undan
+  }
+  const start = dog.position.x - 12;
+  roadside.forEach((bush, i) => {
+    bush.position.x = start + ((((i * 5 - start) % 80) + 80) % 80);
+  });
+  dog.visible = safeTime <= 0 || Math.floor(safeTime * 12) % 2 === 0; // blinkar efter en krock
+  progressBar.style.width = Math.min(100, (dog.position.x / goalX) * 100) + '%';
+  if (dog.position.x >= goalX) endRun(true);
+}
+
+function goHome() {
+  scene.background.setHex(NIGHT);
+  ground.visible = true;
+  stars.visible = true;
+  runWorld.visible = false;
+  dog.visible = true;
+  dog.position.set(0, 0, 0);
+  dog.rotation.set(0, -0.5, 0);
+}
+function endRun(won) {
+  dog.visible = true;
+  if (won) {
+    level += 1;
+    try { localStorage.setItem('level', level); } catch {}
+    mode = 'care';
+    caredFor.clear();
+    goHome();
+    speedY = TAP_SPEED;
+    burst('⭐');
+  } else {
+    mode = 'lost';
+  }
+  showMode();
+}
+
+// Ta hand om hunden efter loppet
+const CARE = [['🦴', 'Mat'], ['💧', 'Vatten'], ['💗', 'Klappa']];
+const caredFor = new Set();
+function burst(emoji) {
+  for (let i = 0; i < 7; i++) {
+    const el = document.createElement('span');
+    el.className = 'float';
+    el.textContent = emoji;
+    el.style.left = 50 + (Math.random() - 0.5) * 40 + 'vw';
+    el.style.animationDelay = i * 0.07 + 's';
+    document.body.appendChild(el);
+    setTimeout(() => el.remove(), 2000);
+  }
+}
+
+// Visa rätt knappar och texter för det läge spelet är i
+const el = (id) => document.getElementById(id);
+const progressBar = el('progressBar');
+function dogName() {
+  return nameInput.value.trim();
+}
+function showHud() {
+  el('hearts').textContent = '❤️'.repeat(hearts) + '🤍'.repeat(3 - hearts);
+  el('levelName').textContent = t('Bana {n}').replace('{n}', level);
+}
+function showMode() {
+  el('top').hidden = mode !== 'dress';
+  el('wardrobe').hidden = mode !== 'dress';
+  el('hud').hidden = mode !== 'run' && mode !== 'lost';
+  el('lost').hidden = mode !== 'lost';
+  el('care').hidden = mode !== 'care';
+  showHud();
+  el('hint').textContent = t('Tryck för att hoppa!');
+  el('runButton').textContent = '🏃 ' + t('Spring bana {n}!').replace('{n}', level);
+  el('lostTitle').textContent = t('Oj då!');
+  el('lostText').textContent = t('Hunden snubblade. Försök igen!');
+  el('retry').textContent = '🏃 ' + t('Försök igen');
+  el('lostHome').textContent = '👗 ' + t('Garderoben');
+
+  const allDone = caredFor.size === CARE.length;
+  el('careTitle').textContent = t('Bra sprunget!');
+  el('careText').textContent = allDone ? t('Hunden är glad igen!') : t('Nu behöver hunden lite omsorg');
+  const careButtons = el('careButtons');
+  careButtons.textContent = '';
+  for (const [emoji, name] of CARE) {
+    const b = document.createElement('button');
+    b.className = 'chip' + (caredFor.has(name) ? ' chosen' : '');
+    b.textContent = `${emoji} ${t(name)}${caredFor.has(name) ? ' ✓' : ''}`;
+    b.addEventListener('click', () => {
+      caredFor.add(name);
+      burst(emoji);
+      speedY = Math.max(speedY, 3.5);
+      showMode();
+    });
+    careButtons.appendChild(b);
+  }
+  el('nextLevel').textContent = '▶ ' + t('Bana {n}').replace('{n}', level);
+  el('nextLevel').disabled = !allDone;
+  el('careHome').textContent = '👗 ' + t('Garderoben');
+}
+el('runButton').addEventListener('click', startRun);
+el('retry').addEventListener('click', startRun);
+el('nextLevel').addEventListener('click', startRun);
+for (const id of ['lostHome', 'careHome']) {
+  el(id).addEventListener('click', () => {
+    mode = 'dress';
+    goHome();
+    showMode();
+  });
+}
+refreshers.push(showMode);
+showMode();
+
 // Testläge för utvecklaren: adressen #test21 visar hund nummer 2 med plagg nummer 1, utan startsida
 const test = location.hash.match(/^#test(\d)(\d?)/);
 if (test) {
@@ -630,6 +869,12 @@ if (test) {
   showWardrobe();
 }
 
+if (location.hash === '#run' || location.hash === '#care') {
+  startScreen.hidden = true;
+  startRun();
+  if (location.hash === '#care') endRun(true);
+}
+
 // Jordglob-knappen öppnar språkvalet igen, mitt i spelet. Kläderna och namnet finns kvar.
 document.getElementById('language').addEventListener('click', () => {
   startScreen.hidden = false;
@@ -639,12 +884,13 @@ document.getElementById('language').addEventListener('click', () => {
 function resize() {
   const aspect = window.innerWidth / window.innerHeight;
   camera.aspect = aspect;
-  camera.position.z = aspect < 1 ? 5.4 : 4.3; // lite längre bort på stående mobil
+  dressZ = aspect < 1 ? 5.4 : 4.3; // lite längre bort på stående mobil
   lift = window.innerHeight < 520 ? 0.4 : 0.15; // flytta upp hunden så att garderoben inte skymmer den
   camera.updateProjectionMatrix();
   renderer.setSize(window.innerWidth, window.innerHeight);
 }
 let lift = 0;
+let dressZ = 5;
 window.addEventListener('resize', resize);
 resize();
 
@@ -652,30 +898,49 @@ resize();
 const clock = new THREE.Clock();
 renderer.setAnimationLoop(() => {
   const dt = Math.min(clock.getDelta(), 0.05);
+  const time = clock.elapsedTime;
+  const running = mode === 'run';
 
-  // Tyngdkraft och studs mot marken
-  speedY -= GRAVITY * dt;
+  if (running) updateRun(dt);
+
+  // Tyngdkraft. I garderoben studsar hunden lite, på banan landar den direkt.
+  speedY -= (running ? RUN_GRAVITY : GRAVITY) * dt;
   dog.position.y += speedY * dt;
   if (dog.position.y < 0) {
     dog.position.y = 0;
-    speedY = Math.abs(speedY) > 1 ? -speedY * BOUNCE : 0;
+    speedY = !running && Math.abs(speedY) > 1 ? -speedY * BOUNCE : 0;
   }
+  const inAir = dog.position.y > 0.01;
 
   // Svansen viftar, snabbare när hunden är i luften
-  const t = clock.elapsedTime;
-  const inAir = dog.position.y > 0.01;
-  tail.rotation.x = Math.sin(t * (inAir ? 22 : 9)) * 0.6;
-  const flap = inAir ? -0.9 : Math.sin(t * 2) * 0.05; // öronen flaxar utåt i luften
+  tail.rotation.x = Math.sin(time * (inAir ? 22 : 9)) * 0.6;
+  const flap = inAir ? -0.9 : running ? -0.4 + Math.sin(time * 12) * 0.2 : Math.sin(time * 2) * 0.05;
   for (const pair of [EARS.fluffy, EARS.flap]) {
-    pair[0].rotation.x = flap;
+    pair[0].rotation.x = flap; // öronen flaxar utåt
     pair[1].rotation.x = -flap;
   }
 
-  // Kameran följer mjukt med hunden uppåt
-  const targetY = Math.max(1, dog.position.y + DOG_CENTER);
-  cameraY += (targetY - cameraY) * Math.min(1, dt * 5);
-  camera.position.y = cameraY + 1 - lift;
-  camera.lookAt(0, cameraY - lift, 0);
+  // Springsteg: kroppen guppar och gungar
+  const stride = running ? Math.sin(time * runSpeed * 2.4) : 0;
+  upper.position.y = upperBase + (inAir ? 0 : Math.abs(stride) * 0.06);
+  dog.rotation.z = running ? (inAir ? 0.18 : stride * 0.07) : 0;
+
+  if (mode === 'run' || mode === 'lost') {
+    // Kameran springer med snett bakom hunden, så att man ser kroppen och hindren framför
+    const narrow = camera.aspect < 1;
+    // (på stående mobil nästan rakt bakifrån, annars syns inte hindren)
+    camera.position.set(dog.position.x - (narrow ? 5 : 3.2), narrow ? 3.6 : 2.6, narrow ? 1.7 : 4.6);
+    camera.lookAt(dog.position.x + (narrow ? 4 : 2.6), narrow ? 0.4 : 0.7, 0);
+  } else {
+    // Kameran följer mjukt med hunden uppåt
+    const targetY = Math.max(1, dog.position.y + DOG_CENTER);
+    cameraY += (targetY - cameraY) * Math.min(1, dt * 5);
+    camera.position.set(0, cameraY + 1 - lift, dressZ);
+    camera.lookAt(0, cameraY - lift, 0);
+  }
+  stars.position.x = camera.position.x;
+  sun.position.x = dog.position.x + 3;
+  sun.target.position.x = dog.position.x;
 
   renderer.render(scene, camera);
 });
