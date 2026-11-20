@@ -226,6 +226,24 @@
       @media (max-width: 600px) {
         #wardrobe .tab { flex: 1 1 14%; max-width: none; height: 44px; font-size: 22px; }
       }
+      #medalButton { pointer-events: auto; cursor: pointer; font-family: inherit; font-weight: 600; background: #ffd93d; touch-action: manipulation; }
+      #medals .box { max-height: 92vh; overflow-y: auto; box-sizing: border-box; width: min(100%, 420px); }
+      #medalList { display: flex; flex-direction: column; gap: 6px; align-self: stretch; }
+      .medal {
+        display: flex; align-items: center; gap: 12px; text-align: left; padding: 6px 12px;
+        border-radius: 14px; background: rgba(255, 255, 255, 0.16); color: #fff;
+        font-size: clamp(13px, 3.6vw, 16px); line-height: 1.25;
+      }
+      .medal span { font-size: 28px; }
+      .medal b { display: block; color: #ffd93d; font-size: 1.15em; }
+      .medal.missing { opacity: 0.55; }
+      .medal.missing b { color: #fff; }
+      #toast {
+        position: fixed; top: 38%; left: 50%; transform: translateX(-50%); z-index: 8; white-space: nowrap;
+        padding: 12px 22px; border-radius: 22px; background: #ffd93d; color: #2a1458;
+        border: 4px solid #2a1458; box-shadow: 0 6px 0 #ff5fa2; pointer-events: none;
+        font-size: clamp(18px, 5vw, 26px); font-weight: 700;
+      }
     </style>
   </head>
   <body>
@@ -237,6 +255,7 @@
         <button id="sound" aria-label="Ljud av eller på">🔊</button>
         <button id="runButton" class="go"></button>
         <span id="boneCount" class="count"></span>
+        <button id="medalButton" class="count"></button>
       </div>
     </div>
     <div id="wardrobe">
@@ -271,6 +290,14 @@
         <button id="careHome" class="plain"></button>
       </div>
     </div>
+    <div id="medals" class="popup" hidden>
+      <div class="box">
+        <h2 id="medalTitle"></h2>
+        <div id="medalList"></div>
+        <button id="medalClose" class="go"></button>
+      </div>
+    </div>
+    <div id="toast" hidden></div>
     <div id="start">
       <div id="card">
         <div class="paws">🐾 🐩 🐾</div>

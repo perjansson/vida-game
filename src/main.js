@@ -37,6 +37,17 @@ const TEXTS = {
     'Börja om från bana 1': 'Aloita alusta radalta 1', 'Säker? Tryck igen för att börja om': 'Varmasti? Paina uudelleen',
     'Matta': 'Matto', 'Blommor': 'Kukat', 'Ballonger': 'Ilmapallot', 'Korg': 'Kori', 'Träd': 'Puu', 'Hundkoja': 'Koirankoppi',
     'Lär': 'Opeta', 'Sitt': 'Istu', 'Snurra': 'Pyöri', 'Tass': 'Tassu', 'Dansa': 'Tanssi', 'Rulla': 'Kieri', 'Volt': 'Voltti',
+    'Medaljer': 'Mitalit', 'Stäng': 'Sulje', 'Ny medalj': 'Uusi mitali',
+    'Första målet': 'Ensimmäinen maali', 'Klara en bana': 'Läpäise rata',
+    'Felfri': 'Virheetön', 'Klara en bana utan att krocka': 'Läpäise rata törmäämättä',
+    'Bensamlare': 'Luunkerääjä', 'Samla 100 ben totalt': 'Kerää yhteensä 100 luuta',
+    'Första köpet': 'Ensimmäinen ostos', 'Köp något för hundben': 'Osta jotain luilla',
+    'Ny kompis': 'Uusi kaveri', 'Köp en ny hund': 'Osta uusi koira',
+    'Trickmästare': 'Temppumestari', 'Lär hunden tre trick': 'Opeta koiralle kolme temppua',
+    'Promenadproffs': 'Kävelymestari', 'Gå på promenad': 'Käy kävelyllä',
+    'Hemmafixare': 'Kodinlaittaja', 'Ha tre saker i trädgården': 'Laita puutarhaan kolme tavaraa',
+    'Sjusovare': 'Unikeko', 'Låt hunden sova i korgen': 'Anna koiran nukkua korissa',
+    'Mästare': 'Mestari', 'Kom till bana 6': 'Pääse radalle 6',
     'Sova': 'Nuku', 'Promenad': 'Kävely', 'Gå på promenad som belöning': 'Palkinnoksi pääset kävelylle',
     'Köp': 'Osta', 'spring fler banor!': 'juokse lisää ratoja!', 'Boll': 'Pallo', 'Leka': 'Leiki', 'Nu behöver hunden lite omsorg': 'Nyt koira tarvitsee hoivaa',
     'Hunden är glad igen!': 'Koira on taas iloinen!',
@@ -76,6 +87,17 @@ const TEXTS = {
     'Börja om från bana 1': 'Start over from level 1', 'Säker? Tryck igen för att börja om': 'Sure? Tap again to start over',
     'Matta': 'Rug', 'Blommor': 'Flowers', 'Ballonger': 'Balloons', 'Korg': 'Basket', 'Träd': 'Tree', 'Hundkoja': 'Dog house',
     'Lär': 'Teach', 'Sitt': 'Sit', 'Snurra': 'Spin', 'Tass': 'Paw', 'Dansa': 'Dance', 'Rulla': 'Roll', 'Volt': 'Flip',
+    'Medaljer': 'Medals', 'Stäng': 'Close', 'Ny medalj': 'New medal',
+    'Första målet': 'First finish', 'Klara en bana': 'Finish a level',
+    'Felfri': 'Flawless', 'Klara en bana utan att krocka': 'Finish a level without crashing',
+    'Bensamlare': 'Bone collector', 'Samla 100 ben totalt': 'Collect 100 bones in total',
+    'Första köpet': 'First purchase', 'Köp något för hundben': 'Buy something with bones',
+    'Ny kompis': 'New friend', 'Köp en ny hund': 'Buy a new dog',
+    'Trickmästare': 'Trick master', 'Lär hunden tre trick': 'Teach the dog three tricks',
+    'Promenadproffs': 'Walk pro', 'Gå på promenad': 'Go for a walk',
+    'Hemmafixare': 'Home maker', 'Ha tre saker i trädgården': 'Have three things in the garden',
+    'Sjusovare': 'Sleepyhead', 'Låt hunden sova i korgen': 'Let the dog sleep in the basket',
+    'Mästare': 'Champion', 'Kom till bana 6': 'Reach level 6',
     'Sova': 'Sleep', 'Promenad': 'Walk', 'Gå på promenad som belöning': 'Go for a walk as a reward',
     'Köp': 'Buy', 'spring fler banor!': 'run more levels!', 'Boll': 'Ball', 'Nalle': 'Teddy', 'Leka': 'Play', 'Nu behöver hunden lite omsorg': 'Now the dog needs some care',
     'Hunden är glad igen!': 'The dog is happy again!',
@@ -553,6 +575,7 @@ function pay(name) {
   document.getElementById('boneCount').textContent = '🦴 ' + bones;
   SOUND.happy();
   speedY = TAP_SPEED;
+  checkMedals();
 }
 function saveOutfit() {
   const outfit = {};
@@ -787,12 +810,73 @@ function updateSleep(dt, time) {
   if (sleep.time >= SLEEP_TIME) {
     upper.scale.setScalar(1);
     stopSleep();
+    stats.sleeps += 1;
+    checkMedals();
     SOUND.bark();
     speedY = TAP_SPEED; // pigg och glad igen
     if (mode === 'care') showMode();
     else showWardrobe();
   }
 }
+
+// ---------- Medaljer ----------
+// Varje medalj: [bild, namn, vad man ska göra, och ett test som säger om man har klarat det]
+const stats = { perfect: 0, totalBones: 0, walks: 0, sleeps: 0 };
+try { Object.assign(stats, JSON.parse(localStorage.getItem('stats')) || {}); } catch {}
+const ownedOf = (names) => names.filter((name) => PRICE[name] && owned.has(name)).length;
+const MEDALS = [
+  ['🥇', 'Första målet', 'Klara en bana', () => level > 1],
+  ['⭐', 'Felfri', 'Klara en bana utan att krocka', () => stats.perfect > 0],
+  ['🦴', 'Bensamlare', 'Samla 100 ben totalt', () => stats.totalBones >= 100],
+  ['🛍️', 'Första köpet', 'Köp något för hundben', () => owned.size > 0],
+  ['🐕', 'Ny kompis', 'Köp en ny hund', () => ownedOf(BREEDS.map((b) => b.name)) > 0],
+  ['🎪', 'Trickmästare', 'Lär hunden tre trick', () => ownedOf(Object.keys(TRICKS)) >= 3],
+  ['🦮', 'Promenadproffs', 'Gå på promenad', () => stats.walks > 0],
+  ['🏠', 'Hemmafixare', 'Ha tre saker i trädgården', () => placed.size >= 3],
+  ['😴', 'Sjusovare', 'Låt hunden sova i korgen', () => stats.sleeps > 0],
+  ['🏆', 'Mästare', 'Kom till bana 6', () => level >= 6],
+];
+const medals = new Set(); // namnen på medaljerna man har fått
+try { for (const name of JSON.parse(localStorage.getItem('medals')) || []) medals.add(name); } catch {}
+const medalButton = document.getElementById('medalButton');
+const toast = document.getElementById('toast');
+let toastTimer = 0;
+function showMedals() {
+  medalButton.textContent = `🏅 ${medals.size}/${MEDALS.length}`;
+  document.getElementById('medalTitle').textContent = '🏅 ' + t('Medaljer');
+  document.getElementById('medalClose').textContent = t('Stäng');
+  const list = document.getElementById('medalList');
+  list.textContent = '';
+  for (const [emoji, name, how] of MEDALS) {
+    const row = document.createElement('div');
+    row.className = 'medal' + (medals.has(name) ? '' : ' missing');
+    row.innerHTML = `<span>${medals.has(name) ? emoji : '🔒'}</span><div><b>${t(name)}</b>${t(how)}</div>`;
+    list.appendChild(row);
+  }
+}
+function checkMedals(quiet) {
+  try { localStorage.setItem('stats', JSON.stringify(stats)); } catch {}
+  for (const [emoji, name, , test] of MEDALS) {
+    if (medals.has(name) || !test()) continue;
+    medals.add(name);
+    if (quiet) continue;
+    // Visa en liten skylt överst en stund
+    toast.textContent = `${emoji} ${t('Ny medalj')}: ${t(name)}!`;
+    toast.hidden = false;
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => (toast.hidden = true), 3200);
+    melody([784, 988, 1175, 1568], 0.1);
+  }
+  try { localStorage.setItem('medals', JSON.stringify([...medals])); } catch {}
+  showMedals();
+}
+medalButton.addEventListener('click', () => {
+  SOUND.pop();
+  showMedals();
+  document.getElementById('medals').hidden = false;
+});
+document.getElementById('medalClose').addEventListener('click', () => (document.getElementById('medals').hidden = true));
+refreshers.push(showMedals);
 
 // ---------- Garderoben ----------
 // Flikarna längst ner väljer vad man klär på. Ovanför visas alla plagg och färger.
@@ -873,6 +957,7 @@ function showWardrobe() {
           placed.has(name) ? placed.delete(name) : placed.add(name);
           try { localStorage.setItem('home', JSON.stringify([...placed])); } catch {}
           showHome();
+          checkMedals();
         });
       } else if (tryHome !== name) {
         button(chipsBar, 'chip locked', `🔒 ${t(name)} 🦴${price}`, false, () => { stopTrying(); tryHome = name; showHome(); });
@@ -883,6 +968,7 @@ function showWardrobe() {
           placed.add(name);
           try { localStorage.setItem('home', JSON.stringify([...placed])); } catch {}
           showHome();
+          checkMedals();
         });
       } else {
         button(chipsBar, 'chip poor', `🦴${price} – ${t('spring fler banor!')}`, false, () => SOUND.hit());
@@ -1369,12 +1455,15 @@ function endWalk() {
   try { localStorage.setItem('bones', bones); } catch {}
   lastReward += runBones;
   walked = true;
+  stats.walks += 1;
+  stats.totalBones += runBones;
   mode = 'care';
   goHome();
   speedY = TAP_SPEED;
   burst('🦴');
   SOUND.win();
   showMode();
+  checkMedals();
 }
 let walked = false; // om man redan har gått promenaden efter den här banan
 function endRun(won) {
@@ -1383,6 +1472,8 @@ function endRun(won) {
     // Belöning: fler hjärtan kvar ger fler stjärnor och fler ben
     lastStars = hearts;
     lastReward = 5 + hearts * 5 + runBones;
+    stats.totalBones += lastReward;
+    if (hearts === 3) stats.perfect += 1;
     bones += lastReward;
     try { localStorage.setItem('bones', bones); } catch {}
     level += 1;
@@ -1401,6 +1492,7 @@ function endRun(won) {
     SOUND.lose();
   }
   showMode();
+  if (won) checkMedals();
 }
 
 // Ta hand om hunden efter loppet
@@ -1613,6 +1705,7 @@ for (const id of ['lostHome', 'careHome']) {
 }
 refreshers.push(showMode);
 showMode();
+checkMedals(true); // medaljer man redan har förtjänat delas ut tyst när spelet startar
 
 // Testläge för utvecklaren: adressen #test21 visar hund nummer 2 med plagg nummer 1, utan startsida
 const test = location.hash.match(/^#test(\d)(\d?)/);
@@ -1661,7 +1754,7 @@ resetButton.addEventListener('click', () => {
     return;
   }
   try {
-    for (const key of ['level', 'bones', 'owned', 'outfit', 'home', 'breed']) localStorage.removeItem(key);
+    for (const key of ['level', 'bones', 'owned', 'outfit', 'home', 'breed', 'stats', 'medals']) localStorage.removeItem(key);
   } catch {}
   location.hash = '';
   location.reload();
@@ -1679,6 +1772,12 @@ soundButton.addEventListener('click', () => {
   SOUND.pop();
 });
 
+if (location.hash === '#medals') { // testläge: visa medaljlistan
+  startScreen.hidden = true;
+  medalButton.click();
+  toast.textContent = '🥇 Ny medalj: Första målet!';
+  toast.hidden = false;
+}
 if (location.hash === '#sleep') { // testläge: visa hunden sovande i korgen
   startScreen.hidden = true;
   for (const [name] of HOME) placed.add(name);
