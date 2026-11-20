@@ -892,6 +892,12 @@ function addBone(x, y) {
   pickups.push({ x, y, group: g });
 }
 
+// Farten ökar hela tiden under banan: ju längre man har sprungit, desto fortare går det
+let startSpeed = 5;
+function speedAt(x) {
+  return Math.min(startSpeed + x * 0.02, startSpeed * 1.6, 12.5);
+}
+
 function addObstacle(kind, x) {
   const g = group(obstacleGroup, x, 0, 0);
   const animate = kind.build(g);
@@ -916,7 +922,8 @@ function startRun() {
   obstacleGroup.clear();
   obstacles = [];
   // Varje bana är längre, snabbare och har tätare mellan hindren än den förra
-  runSpeed = Math.min(4.6 + level * 0.5, 10.5);
+  startSpeed = Math.min(4.6 + level * 0.5, 10.5);
+  runSpeed = startSpeed;
   const count = Math.min(8 + level * 4, 60); // antal hinder
   const shortest = Math.max(0.9, 1.35 - level * 0.05); // kortaste tiden mellan två hinder, i sekunder
   const extra = Math.max(0.3, 0.9 - level * 0.06); // hur mycket längre det kan vara ibland
@@ -924,7 +931,7 @@ function startRun() {
   let x = 10;
   for (let i = 0; i < count; i++) {
     const kind = kinds[Math.floor(Math.random() * kinds.length)];
-    x += runSpeed * (shortest + Math.random() * extra) + (kind.roll ? 7 : 0); // rullande hinder får extra plats
+    x += speedAt(x) * (shortest + Math.random() * extra) + (kind.roll ? 7 : 0); // rullande hinder får extra plats
     addObstacle(kind, x);
   }
   // Lägg ut ben: på marken mellan hindren och i luften ovanför en del hinder
@@ -961,6 +968,7 @@ window.addEventListener('keydown', (event) => {
 });
 
 function updateRun(dt, time) {
+  runSpeed = speedAt(dog.position.x);
   dog.position.x += runSpeed * dt;
   safeTime -= dt;
   const dogTop = dog.position.y + (1.3 + upperBase) * breed.size; // hundens huvud
@@ -1220,7 +1228,7 @@ if (location.hash === '#run' || location.hash.startsWith('#care')) {
   if (location.hash === '#run') { // visa en av varje sorts hinder på rad
     obstacleGroup.clear();
     obstacles = [];
-    runSpeed = 0.01;
+    startSpeed = 0.01;
     OBSTACLES.forEach((kind, i) => addObstacle({ ...kind, roll: 0 }, 2.5 + i * 2.6));
   }
   if (location.hash.startsWith('#care')) {
