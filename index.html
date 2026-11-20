@@ -255,6 +255,10 @@
         border: 4px solid #2a1458; box-shadow: 0 6px 0 #ff5fa2; pointer-events: none;
         font-size: clamp(18px, 5vw, 26px); font-weight: 700;
       }
+      #swim { position: fixed; top: max(12px, env(safe-area-inset-top)); left: 0; right: 0; z-index: 2; display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: center; pointer-events: none; }
+      #swim button { pointer-events: auto; }
+      #swimTitle { color: #fff; font-size: clamp(24px, 6.5vw, 34px); font-weight: 700; -webkit-text-stroke: 5px #2a1458; paint-order: stroke fill; }
+      #swimHint { flex-basis: 100%; text-align: center; color: #fff; font-size: clamp(15px, 4vw, 19px); -webkit-text-stroke: 4px #2a1458; paint-order: stroke fill; }
       #bubble, #friendBubble {
         position: fixed; z-index: 3; transform: translate(-50%, -100%); white-space: nowrap; pointer-events: none;
         padding: 6px 16px; border-radius: 20px; background: #fff; color: #2a1458; border: 3px solid #2a1458;
@@ -312,6 +316,11 @@
         <button id="careHome" class="plain"></button>
       </div>
     </div>
+    <div id="swim" hidden>
+      <span id="swimTitle"></span>
+      <button id="swimHome" class="plain"></button>
+      <div id="swimHint"></div>
+    </div>
     <div id="park" class="panel" hidden>
       <h2 id="parkTitle"></h2>
       <p id="parkText"></p>
@@ -321,6 +330,7 @@
         <button id="playButton" class="go" hidden></button>
         <button id="treatButton" class="plain"></button>
         <button id="nextFriend" class="plain"></button>
+        <button id="agilityButton" class="plain"></button>
         <button id="parkHome" class="plain"></button>
       </div>
     </div>
