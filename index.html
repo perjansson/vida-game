@@ -178,6 +178,8 @@
       }
       #careButtons, #careNext { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
       #careButtons button { font-family: inherit; cursor: pointer; touch-action: manipulation; }
+      #careButtons button:disabled { opacity: 0.6; cursor: default; }
+      #careButtons button.chosen:disabled { opacity: 1; }
       .float {
         position: fixed; top: 42%; z-index: 4; font-size: 40px; pointer-events: none; opacity: 0;
         animation: floatUp 1.3s ease-out forwards;

@@ -786,6 +786,8 @@ function endRun(won) {
     try { localStorage.setItem('level', level); } catch {}
     mode = 'care';
     caredFor.clear();
+    careAction = null;
+    fillBowls();
     goHome();
     speedY = TAP_SPEED;
     burst('⭐');
@@ -798,6 +800,86 @@ function endRun(won) {
 // Ta hand om hunden efter loppet
 const CARE = [['🦴', 'Mat'], ['💧', 'Vatten'], ['💗', 'Klappa']];
 const caredFor = new Set();
+const CARE_TIME = 3.5; // så många sekunder tar det att äta, dricka eller bli klappad
+let careAction = null; // det hunden gör just nu, till exempel äter
+
+// Sakerna som behövs: matskål, vattenskål och en hand som klappar.
+// De ligger i en egen grupp som vrids likadant som hunden, så att skålarna alltid står framför nosen.
+const careProps = group(scene);
+careProps.visible = false;
+function makeBowl(bowlColor, contentColor, side) {
+  const bowl = group(careProps, 1, 0, side * 0.36);
+  part(new THREE.CylinderGeometry(0.27, 0.2, 0.15, 20), mat(bowlColor), 0, 0.075, 0, bowl);
+  part(new THREE.TorusGeometry(0.265, 0.025, 8, 24), mat(bowlColor), 0, 0.15, 0, bowl).rotation.x = Math.PI / 2;
+  const content = group(bowl);
+  part(new THREE.CylinderGeometry(0.235, 0.235, 0.03, 20), mat(contentColor), 0, 0, 0, content);
+  return { bowl, content, side };
+}
+const BOWLS = { Mat: makeBowl(0xe63946, 0x8a5a3a, 1), Vatten: makeBowl(0x2a9dff, 0x9ee7ff, -1) };
+for (let i = 0; i < 9; i++) { // matkulor som ligger i en liten hög
+  const a = i * 2.4;
+  const r = i === 0 ? 0 : 0.07 + (i % 3) * 0.05;
+  fluff(0.055, mat(i % 2 ? 0x6e4429 : 0xa0683c), Math.cos(a) * r, 0.04, Math.sin(a) * r, BOWLS.Mat.content);
+}
+function fillBowls() {
+  for (const { content } of Object.values(BOWLS)) {
+    content.position.y = 0.15;
+    content.scale.setScalar(1);
+  }
+}
+fillBowls();
+
+const hand = group(careProps);
+const SKIN = mat(0xffcc4d); // gul som en emoji-hand
+fluff(1, SKIN, 0, 0, 0, hand).scale.set(0.17, 0.06, 0.15); // handflata
+for (let i = 0; i < 4; i++) {
+  const finger = part(new THREE.CapsuleGeometry(0.035, 0.14, 4, 8), SKIN, 0.2, -0.02, -0.105 + i * 0.07, hand);
+  finger.rotation.z = Math.PI / 2 + 0.25; // fingrarna pekar framåt och lite nedåt
+}
+part(new THREE.CapsuleGeometry(0.035, 0.1, 4, 8), SKIN, 0.05, -0.01, 0.17, hand).rotation.x = Math.PI / 2 - 0.5; // tumme
+part(new THREE.CylinderGeometry(0.09, 0.1, 0.3, 12), mat(0x2a9dff), -0.27, 0.03, 0, hand).rotation.z = Math.PI / 2 - 0.2; // ärm
+hand.visible = false;
+
+function updateCare(dt, time) {
+  careProps.rotation.y = dog.rotation.y;
+  const reach = 0.9 * breed.size + 0.1; // så långt fram når nosen
+  for (const { bowl } of Object.values(BOWLS)) bowl.position.x = reach;
+  hand.visible = false;
+  if (!careAction || dog.position.y > 0.01) return; // vänta tills hunden har landat
+
+  careAction.time += dt;
+  const done = Math.min(1, careAction.time / CARE_TIME);
+  const bowl = BOWLS[careAction.name];
+  if (bowl) {
+    // Hunden böjer sig ner mot skålen och äter eller dricker. Skålen töms sakta.
+    const down = Math.min(1, careAction.time * 3);
+    upper.rotation.z = (-0.5 - upperBase) * down;
+    head.rotation.z = (-0.95 + Math.sin(time * 11) * 0.12) * down;
+    head.rotation.y = -bowl.side * 0.4 * down;
+    bowl.content.position.y = 0.15 - done * 0.1;
+    bowl.content.scale.setScalar(1 - done * 0.2);
+  } else {
+    // Handen stryker fram och tillbaka över huvudet
+    const hatHeight = wardrobe.find((kind) => kind.id === 'hat').choice >= 0 ? 0.4 : 0.1;
+    const stroke = Math.sin(time * 5);
+    hand.visible = true;
+    hand.position.set(
+      (0.5 + stroke * 0.2) * breed.size,
+      (1.05 + upperBase + 0.36 + hatHeight) * breed.size + Math.abs(stroke) * 0.05,
+      0,
+    );
+    hand.rotation.z = -0.15 + stroke * 0.15;
+    head.rotation.x = stroke * 0.12; // hunden myser och vickar på huvudet
+    head.rotation.z = 0.12;
+  }
+  if (done >= 1) {
+    caredFor.add(careAction.name);
+    burst(careAction.emoji);
+    careAction = null;
+    speedY = Math.max(speedY, 3.5);
+    showMode();
+  }
+}
 function burst(emoji) {
   for (let i = 0; i < 7; i++) {
     const el = document.createElement('span');
@@ -837,16 +919,16 @@ function showMode() {
   const allDone = caredFor.size === CARE.length;
   el('careTitle').textContent = t('Bra sprunget!');
   el('careText').textContent = allDone ? t('Hunden är glad igen!') : t('Nu behöver hunden lite omsorg');
+  careProps.visible = mode === 'care';
   const careButtons = el('careButtons');
   careButtons.textContent = '';
   for (const [emoji, name] of CARE) {
     const b = document.createElement('button');
     b.className = 'chip' + (caredFor.has(name) ? ' chosen' : '');
     b.textContent = `${emoji} ${t(name)}${caredFor.has(name) ? ' ✓' : ''}`;
+    b.disabled = !!careAction || caredFor.has(name); // en sak i taget
     b.addEventListener('click', () => {
-      caredFor.add(name);
-      burst(emoji);
-      speedY = Math.max(speedY, 3.5);
+      careAction = { name, emoji, time: 0 };
       showMode();
     });
     careButtons.appendChild(b);
@@ -879,10 +961,17 @@ if (test) {
   showWardrobe();
 }
 
-if (location.hash === '#run' || location.hash === '#care') {
+if (location.hash === '#run' || location.hash.startsWith('#care')) {
   startScreen.hidden = true;
   startRun();
-  if (location.hash === '#care') endRun(true);
+  if (location.hash.startsWith('#care')) {
+    endRun(true);
+    breedIndex = Number(location.hash[6] || 0) % BREEDS.length; // #care12 = sak 1, hund 2
+    showBreed();
+    careAction = { name: CARE[Number(location.hash[5] || 0) % 3][1], emoji: '🦴', time: 1.5 };
+    speedY = 0;
+    showMode();
+  }
 }
 
 // Jordglob-knappen öppnar språkvalet igen, mitt i spelet. Kläderna och namnet finns kvar.
@@ -923,7 +1012,7 @@ renderer.setAnimationLoop(() => {
   const inAir = dog.position.y > 0.01;
 
   // Svansen viftar, snabbare när hunden är i luften
-  tail.rotation.x = Math.sin(time * (inAir ? 22 : 9)) * 0.6;
+  tail.rotation.x = Math.sin(time * (inAir || careAction ? 22 : 9)) * 0.6;
   const flap = inAir ? -0.9 : running ? -0.4 + Math.sin(time * 12) * 0.2 : Math.sin(time * 2) * 0.05;
   for (const pair of [EARS.fluffy, EARS.flap]) {
     pair[0].rotation.x = flap; // öronen flaxar utåt
@@ -934,6 +1023,11 @@ renderer.setAnimationLoop(() => {
   const stride = running ? Math.sin(time * runSpeed * 2.4) : 0;
   upper.position.y = upperBase + (inAir ? 0 : Math.abs(stride) * 0.06);
   dog.rotation.z = running ? (inAir ? 0.18 : stride * 0.07) : 0;
+
+  // Omsorg: huvudet och kroppen står rakt om hunden inte äter, dricker eller blir klappad
+  upper.rotation.z = 0;
+  head.rotation.set(0, 0, 0);
+  if (mode === 'care') updateCare(dt, time);
 
   // Benen svänger: bakbenen och frambenen i otakt, som en galopp. I luften sträcker hunden ut sig.
   const phase = time * runSpeed * 2.4;
@@ -954,8 +1048,11 @@ renderer.setAnimationLoop(() => {
     // Kameran följer mjukt med hunden uppåt
     const targetY = Math.max(1, dog.position.y + DOG_CENTER);
     cameraY += (targetY - cameraY) * Math.min(1, dt * 5);
-    camera.position.set(0, cameraY + 1 - lift, dressZ);
-    camera.lookAt(0, cameraY - lift, 0);
+    // När man tar hand om hunden backar kameran och tittar lite lägre, så att skålarna syns
+    const caring = mode === 'care';
+    const low = lift + (caring ? 0.55 : 0);
+    camera.position.set(caring ? 0.4 : 0, cameraY + 1 - low, dressZ + (caring ? 1.3 : 0));
+    camera.lookAt(caring ? 0.4 : 0, cameraY - low, 0);
   }
   stars.position.x = camera.position.x;
   sun.position.x = dog.position.x + 3;
